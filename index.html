@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f0f12" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Aperturas · Aprende ajedrez</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- ============ PANTALLA: INICIO ============ -->
+    <section id="screen-home" class="screen is-active">
+      <header class="home-header">
+        <div class="home-greeting">
+          <span class="home-hello" id="home-hello">¡Hola!</span>
+          <h1>Aprende Aperturas</h1>
+          <p class="home-sub">Domina las aperturas y sus variaciones con tu entrenador personal.</p>
+        </div>
+      </header>
+
+      <div class="coach-banner">
+        <div class="coach-avatar">♞</div>
+        <div class="coach-bubble" id="home-coach-text">
+          Elige una apertura para empezar. Te iré explicando cada jugada con calma, ¿vale?
+        </div>
+      </div>
+
+      <h2 class="section-title">Aperturas</h2>
+      <div id="openings-list" class="openings-list"><!-- generado por JS --></div>
+
+      <footer class="home-footer">
+        <span>Hecho con ♟ para amantes del ajedrez</span>
+      </footer>
+    </section>
+
+    <!-- ============ PANTALLA: LECCIÓN ============ -->
+    <section id="screen-lesson" class="screen">
+      <header class="lesson-header">
+        <button class="icon-btn" id="btn-back" aria-label="Volver">←</button>
+        <div class="lesson-title">
+          <span class="lesson-tag">📖 Aprender</span>
+          <span class="lesson-name" id="lesson-name">London</span>
+        </div>
+        <span class="lesson-counter" id="lesson-counter">#1</span>
+      </header>
+
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      </div>
+
+      <div class="coach-card" id="coach-card">
+        <div class="coach-card-avatar" id="coach-mood">♞</div>
+        <p class="coach-card-text" id="coach-text">…</p>
+      </div>
+
+      <div class="board-wrap">
+        <div id="board" class="board"><!-- generado por JS --></div>
+      </div>
+
+      <div class="lesson-toolbar">
+        <button class="tool-btn" id="btn-settings" aria-label="Ajustes">⚙️</button>
+        <button class="tool-btn tool-hint" id="btn-hint">💡 Pista</button>
+        <button class="tool-btn" id="btn-mode" aria-pressed="false">Modo: Guiado</button>
+        <div class="nav-arrows">
+          <button class="tool-btn" id="btn-prev" aria-label="Anterior">‹</button>
+          <button class="tool-btn" id="btn-next" aria-label="Siguiente">›</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HOJA: AJUSTES ============ -->
+    <div id="settings-sheet" class="sheet">
+      <div class="sheet-backdrop" data-close-sheet></div>
+      <div class="sheet-panel">
+        <div class="sheet-handle"></div>
+        <h3>Ajustes</h3>
+        <button class="sheet-row" id="set-flip">🔄 Girar tablero</button>
+        <button class="sheet-row" id="set-restart">↺ Reiniciar lección</button>
+        <button class="sheet-row" id="set-home">🏠 Volver al inicio</button>
+        <button class="sheet-row sheet-close" data-close-sheet>Cerrar</button>
+      </div>
+    </div>
+
+    <!-- ============ FELICITACIÓN FINAL ============ -->
+    <div id="complete-overlay" class="overlay">
+      <div class="overlay-card">
+        <div class="overlay-emoji">🎉</div>
+        <h3 id="complete-title">¡Lección completada!</h3>
+        <p id="complete-text">Has aprendido la línea principal. ¡Buen trabajo!</p>
+        <div class="overlay-actions">
+          <button class="btn-primary" id="complete-replay">Repetir</button>
+          <button class="btn-secondary" id="complete-home">Más aperturas</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="openings.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

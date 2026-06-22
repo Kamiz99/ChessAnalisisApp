@@ -1,0 +1,19 @@
+{
+  "name": "Aprende Aperturas de Ajedrez",
+  "short_name": "Aperturas",
+  "description": "Aprende aperturas de ajedrez y sus variaciones con un entrenador cercano que te guía paso a paso.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0f12",
+  "theme_color": "#0f0f12",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
