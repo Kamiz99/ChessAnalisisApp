@@ -2,126 +2,151 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#1a1a2e" />
-  <title>Chess Analysis - Análisis Profundo de Partidas</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f0f12" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Aperturas · Aprende ajedrez</title>
   <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="logo">♞</span>
-      <h1>Chess Analysis</h1>
-    </div>
-    <div class="topbar-actions">
-      <button id="themeToggle" class="icon-btn" title="Cambiar tema">🌙</button>
-      <button id="menuToggle" class="icon-btn mobile-only" title="Menú">☰</button>
-    </div>
-  </header>
+  <div id="app">
 
-  <main class="layout">
-    <aside class="panel panel-left" id="panelLeft">
-      <section class="card">
-        <h2>Cargar partida</h2>
-        <div class="upload-area" id="uploadArea">
-          <input type="file" id="fileInput" accept=".pgn,text/plain" hidden />
-          <button class="btn btn-primary" id="uploadBtn">📂 Subir archivo PGN</button>
-          <p class="hint">o arrastra el archivo aquí</p>
+    <!-- ============ PANTALLA: INICIO ============ -->
+    <section id="screen-home" class="screen is-active">
+      <header class="home-header">
+        <div class="home-greeting">
+          <span class="home-hello" id="home-hello">¡Hola!</span>
+          <h1>Aprende Aperturas</h1>
+          <p class="home-sub">Domina las aperturas y sus variaciones con tu entrenador personal.</p>
         </div>
-        <details class="paste-block">
-          <summary>Pegar PGN manualmente</summary>
-          <textarea id="pgnTextarea" placeholder="[Event &quot;...&quot;]&#10;1. e4 e5 2. Nf3 Nc6 ..."></textarea>
-          <button class="btn btn-secondary" id="loadPgnBtn">Cargar PGN</button>
-        </details>
-        <div class="examples">
-          <button class="link-btn" id="loadSampleBtn">⚡ Cargar partida de ejemplo</button>
-        </div>
-      </section>
+      </header>
 
-      <section class="card" id="gameInfoCard" hidden>
-        <h2>Información</h2>
-        <dl class="game-meta" id="gameMeta"></dl>
-      </section>
-
-      <section class="card" id="analysisCard" hidden>
-        <h2>Análisis</h2>
-        <div class="analysis-controls">
-          <label class="control-row">
-            <span>Profundidad</span>
-            <input type="range" id="depthSlider" min="8" max="22" value="16" />
-            <span class="value" id="depthValue">16</span>
-          </label>
-          <label class="control-row">
-            <span>Líneas (MultiPV)</span>
-            <input type="range" id="multipvSlider" min="1" max="5" value="3" />
-            <span class="value" id="multipvValue">3</span>
-          </label>
-          <div class="analysis-buttons">
-            <button class="btn btn-primary" id="analyzeBtn">🔬 Analizar partida completa</button>
-            <button class="btn btn-secondary" id="stopAnalysisBtn" disabled>⏹ Detener</button>
-          </div>
-          <div class="progress" id="progressBar" hidden>
-            <div class="progress-fill" id="progressFill"></div>
-            <span class="progress-text" id="progressText">0%</span>
-          </div>
-        </div>
-      </section>
-    </aside>
-
-    <section class="panel panel-center">
-      <div class="board-container">
-        <div class="eval-bar-wrapper">
-          <div class="eval-bar" id="evalBar">
-            <div class="eval-bar-white" id="evalBarWhite" style="height: 50%;"></div>
-            <span class="eval-bar-text" id="evalBarText">0.0</span>
-          </div>
-        </div>
-        <div class="board-wrapper">
-          <div id="board" class="chessboard" role="grid" aria-label="Tablero de ajedrez"></div>
-          <div class="board-status" id="boardStatus"></div>
+      <div class="coach-banner">
+        <div class="coach-avatar">♞</div>
+        <div class="coach-bubble" id="home-coach-text">
+          Elige una apertura para empezar. Te iré explicando cada jugada con calma, ¿vale?
         </div>
       </div>
-      <div class="board-controls">
-        <button class="btn btn-icon" id="firstMoveBtn" title="Inicio">⏮</button>
-        <button class="btn btn-icon" id="prevMoveBtn" title="Anterior">◀</button>
-        <button class="btn btn-icon" id="playBtn" title="Reproducir">▶</button>
-        <button class="btn btn-icon" id="nextMoveBtn" title="Siguiente">▶</button>
-        <button class="btn btn-icon" id="lastMoveBtn" title="Final">⏭</button>
-        <button class="btn btn-icon" id="flipBtn" title="Voltear tablero">⇅</button>
+
+      <h2 class="section-title">Aperturas</h2>
+      <div id="openings-list" class="openings-list"><!-- generado por JS --></div>
+
+      <footer class="home-footer">
+        <span>Hecho con ♟ para amantes del ajedrez</span>
+      </footer>
+    </section>
+
+    <!-- ============ PANTALLA: LECCIÓN ============ -->
+    <section id="screen-lesson" class="screen">
+      <header class="lesson-header">
+        <button class="icon-btn" id="btn-back" aria-label="Volver">←</button>
+        <div class="lesson-title">
+          <span class="lesson-tag">📖 Aprender</span>
+          <span class="lesson-name" id="lesson-name">London</span>
+        </div>
+        <span class="lesson-counter" id="lesson-counter">#1</span>
+      </header>
+
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      </div>
+
+      <div class="coach-card" id="coach-card">
+        <div class="coach-card-avatar" id="coach-mood">♞</div>
+        <p class="coach-card-text" id="coach-text">…</p>
+      </div>
+
+      <div class="board-wrap">
+        <div id="board" class="board"><!-- generado por JS --></div>
+      </div>
+
+      <div class="lesson-toolbar">
+        <button class="tool-btn" id="btn-settings" aria-label="Ajustes">⚙️</button>
+        <button class="tool-btn tool-hint" id="btn-hint">💡 Pista</button>
+        <button class="tool-btn tool-ai" id="btn-ai" aria-label="Preguntar al entrenador">💬</button>
+        <button class="tool-btn" id="btn-mode" aria-pressed="false">Guiado</button>
+        <div class="nav-arrows">
+          <button class="tool-btn" id="btn-prev" aria-label="Anterior">‹</button>
+          <button class="tool-btn" id="btn-next" aria-label="Siguiente">›</button>
+        </div>
       </div>
     </section>
 
-    <aside class="panel panel-right" id="panelRight">
-      <section class="card">
-        <h2>Movimientos</h2>
-        <div class="moves-list" id="movesList">
-          <p class="empty-state">Carga una partida para ver los movimientos.</p>
+    <!-- ============ HOJA: VARIACIONES ============ -->
+    <div id="variations-sheet" class="sheet">
+      <div class="sheet-backdrop" data-close-sheet></div>
+      <div class="sheet-panel">
+        <div class="sheet-handle"></div>
+        <h3 id="variations-title">Variaciones</h3>
+        <p class="sheet-sub">Elige una línea para entrenar:</p>
+        <div id="variations-list"><!-- generado por JS --></div>
+        <button class="sheet-row sheet-close" data-close-sheet>Cerrar</button>
+      </div>
+    </div>
+
+    <!-- ============ PANEL: ENTRENADOR IA ============ -->
+    <div id="ai-sheet" class="sheet">
+      <div class="sheet-backdrop" data-close-sheet></div>
+      <div class="sheet-panel ai-panel">
+        <div class="sheet-handle"></div>
+        <div class="ai-head">
+          <span class="ai-title">💬 Pregúntale al entrenador</span>
+          <button class="ai-config-btn" id="ai-config-btn" aria-label="Configurar IA">⚙️</button>
         </div>
-      </section>
 
-      <section class="card" id="engineCard" hidden>
-        <h2>Motor</h2>
-        <div class="engine-status" id="engineStatus">
-          <span class="status-dot" id="engineStatusDot"></span>
-          <span id="engineStatusText">Iniciando Stockfish...</span>
+        <!-- Configuración de clave (se muestra si no hay clave) -->
+        <div id="ai-setup" class="ai-setup">
+          <p>Para charlar con el entrenador con IA real, pega tu <b>API key de Anthropic</b>. Se guarda solo en este dispositivo.</p>
+          <input id="ai-key-input" class="ai-key-input" type="password" placeholder="sk-ant-..." autocomplete="off" />
+          <button class="btn-primary" id="ai-key-save">Guardar clave</button>
+          <p class="ai-note">¿No tienes clave? Consíguela en <span class="ai-mono">console.anthropic.com</span>. Aviso: úsala solo en tu dispositivo personal.</p>
         </div>
-        <div class="engine-lines" id="engineLines"></div>
-      </section>
 
-      <section class="card" id="summaryCard" hidden>
-        <h2>Resumen de errores</h2>
-        <div class="summary-grid" id="summaryGrid"></div>
-        <div class="eval-chart-wrapper">
-          <canvas id="evalChart"></canvas>
+        <!-- Conversación -->
+        <div id="ai-chat" class="ai-chat"><!-- mensajes --></div>
+        <form id="ai-form" class="ai-form">
+          <input id="ai-input" class="ai-input" type="text" placeholder="Escribe tu duda…" autocomplete="off" />
+          <button class="ai-send" id="ai-send" type="submit" aria-label="Enviar">➤</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ============ HOJA: AJUSTES ============ -->
+    <div id="settings-sheet" class="sheet">
+      <div class="sheet-backdrop" data-close-sheet></div>
+      <div class="sheet-panel">
+        <div class="sheet-handle"></div>
+        <h3>Ajustes</h3>
+        <button class="sheet-row" id="set-flip">🔄 Girar tablero</button>
+        <button class="sheet-row" id="set-restart">↺ Reiniciar lección</button>
+        <button class="sheet-row" id="set-index">📚 Ver todas las variaciones</button>
+        <button class="sheet-row" id="set-home">🏠 Volver al inicio</button>
+        <button class="sheet-row sheet-close" data-close-sheet>Cerrar</button>
+      </div>
+    </div>
+
+    <!-- ============ FELICITACIÓN FINAL ============ -->
+    <div id="complete-overlay" class="overlay">
+      <div class="overlay-card">
+        <div class="overlay-emoji">🎉</div>
+        <h3 id="complete-title">¡Variación completada!</h3>
+        <p id="complete-text">¡Buen trabajo!</p>
+        <button class="btn-primary btn-big" id="complete-next">Siguiente variación ▶</button>
+        <div class="overlay-actions">
+          <button class="btn-secondary" id="complete-replay">Repetir</button>
+          <button class="btn-secondary" id="complete-home">Inicio</button>
         </div>
-      </section>
-    </aside>
-  </main>
+      </div>
+    </div>
 
-  <div class="toast" id="toast" hidden></div>
+  </div>
 
-  <script src="https://unpkg.com/chess.js@0.13.4/chess.js"></script>
+  <script src="openings.js"></script>
+  <script src="ai.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

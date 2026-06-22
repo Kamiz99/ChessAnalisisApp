@@ -1,18 +1,19 @@
 {
-  "name": "Chess Analysis - Análisis Profundo de Partidas",
-  "short_name": "Chess Analysis",
-  "description": "Análisis profundo de partidas de ajedrez desde archivos PGN usando Stockfish",
-  "start_url": "./index.html",
+  "name": "Aprende Aperturas de Ajedrez",
+  "short_name": "Aperturas",
+  "description": "Aprende aperturas de ajedrez y sus variaciones con un entrenador cercano que te guía paso a paso.",
+  "start_url": "index.html",
   "display": "standalone",
-  "orientation": "any",
-  "background_color": "#0f172a",
-  "theme_color": "#1a1a2e",
+  "orientation": "portrait",
+  "background_color": "#0f0f12",
+  "theme_color": "#0f0f12",
+  "lang": "es",
   "icons": [
     {
       "src": "icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ]
 }
