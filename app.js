@@ -6,8 +6,12 @@
 (function () {
   "use strict";
 
-  // ---- Piezas (glifos Unicode). Se colorean con CSS según el color. --------
-  const GLYPH = { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" };
+  // ---- Piezas -------------------------------------------------------------
+  // Imágenes SVG vectoriales (set "cburnett", el de Lichess). Mismo diseño
+  // para todas, nítidas a cualquier tamaño y sin el bug de emoji que volvía
+  // negras a las piezas blancas en el móvil.
+  // Fichero: assets/pieces/{w|b}{K,Q,R,B,N,P}.svg
+  function pieceFile(p) { return (p.color === "white" ? "w" : "b") + p.type + ".svg"; }
   const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
   const PRAISE = [
@@ -33,6 +37,9 @@
     selected: null,
     lastMove: null,
     locked: false,
+    pieceNodes: {},     // id de pieza -> elemento DOM (para animar)
+    selectable: null,   // casilla a resaltar en turno guiado
+    hint: null,         // {from?, to?} resaltado de pista
     aiHistory: [],      // conversación con el entrenador IA [{role, content}]
     aiBusy: false
   };
@@ -68,14 +75,16 @@
   }
 
   // ---- Posición inicial estándar ------------------------------------------
+  let pieceSeq = 0;
   function initialBoard() {
     const b = {};
     const back = ["R", "N", "B", "Q", "K", "B", "N", "R"];
+    const add = (sq, type, color) => { b[sq] = { type, color, id: "p" + (pieceSeq++) }; };
     FILES.forEach((f, i) => {
-      b[f + "1"] = { type: back[i], color: "white" };
-      b[f + "2"] = { type: "P", color: "white" };
-      b[f + "7"] = { type: "P", color: "black" };
-      b[f + "8"] = { type: back[i], color: "black" };
+      add(f + "1", back[i], "white");
+      add(f + "2", "P", "white");
+      add(f + "7", "P", "black");
+      add(f + "8", back[i], "black");
     });
     return b;
   }
@@ -245,48 +254,134 @@
     runStep();
   }
 
+  // Construye una sola vez: la rejilla de 64 casillas (fondo/resaltados/clic)
+  // y una capa superior donde viven las piezas (para poder animarlas).
   function buildBoardGrid() {
     el.board.innerHTML = "";
+    for (let i = 0; i < 64; i++) {
+      const cell = document.createElement("div");
+      cell.className = "sq";
+      cell.addEventListener("click", () => {
+        const sq = cell.dataset.square;
+        if (sq) onSquareTap(sq);
+      });
+      el.board.appendChild(cell);
+    }
+    el.piecesLayer = document.createElement("div");
+    el.piecesLayer.className = "pieces-layer";
+    el.board.appendChild(el.piecesLayer);
+  }
+
+  // Columna/fila visual (0-7) de una casilla según la orientación del tablero.
+  function colRow(sq) {
+    const fi = FILES.indexOf(sq[0]);
+    const ri = Number(sq[1]) - 1;
+    return {
+      col: state.flipped ? 7 - fi : fi,
+      row: state.flipped ? ri : 7 - ri
+    };
+  }
+  function setPiecePos(node, sq) {
+    const { col, row } = colRow(sq);
+    node.style.transform = `translate(${col * 100}%, ${row * 100}%)`;
+  }
+
+  // Pinta el fondo de las casillas: color, coordenadas y resaltados.
+  // No toca las piezas (van en su propia capa), así que es barato y no las
+  // hace "teletransportarse".
+  function paintSquares() {
+    const cells = el.board.children;
+    let i = 0;
     for (let r = 8; r >= 1; r--) {
       for (let f = 0; f < 8; f++) {
-        const sq = FILES[f] + r;
-        const cell = document.createElement("div");
-        const dark = (f + r) % 2 === 0;
-        cell.className = "sq " + (dark ? "dark" : "light");
+        const sq = state.flipped ? FILES[7 - f] + (9 - r) : FILES[f] + r;
+        const cell = cells[i++];
+        const fi = FILES.indexOf(sq[0]), ri = Number(sq[1]);
+        const dark = (fi + ri) % 2 === 0;
+        let cls = "sq " + (dark ? "dark" : "light");
+        if (state.lastMove && (sq === state.lastMove.from || sq === state.lastMove.to)) cls += " last";
+        if (state.selected === sq) cls += " selected";
+        if (state.selectable === sq) cls += " selectable";
+        if (state.hint && state.hint.from === sq) cls += " hint-from";
+        if (state.hint && state.hint.to === sq) cls += " hint-to";
+        cell.className = cls;
         cell.dataset.square = sq;
-        cell.addEventListener("click", () => onSquareTap(sq));
-        el.board.appendChild(cell);
+        const showFile = state.flipped ? sq[1] === "8" : sq[1] === "1";
+        const showRank = state.flipped ? sq[0] === "h" : sq[0] === "a";
+        cell.dataset.file = showFile ? sq[0] : "";
+        cell.dataset.rank = showRank ? sq[1] : "";
       }
+    }
+    // Realza la pieza seleccionada y la que se debe mover (turno guiado).
+    for (const id in state.pieceNodes) state.pieceNodes[id].classList.remove("sel", "movehint");
+    if (state.selected && state.board[state.selected]) {
+      const n = state.pieceNodes[state.board[state.selected].id];
+      if (n) n.classList.add("sel");
+    }
+    if (state.selectable && state.board[state.selectable]) {
+      const n = state.pieceNodes[state.board[state.selectable].id];
+      if (n) n.classList.add("movehint");
     }
   }
 
+  // Coloca TODAS las piezas desde cero (sin animación). Para inicio de lección,
+  // navegación con flechas o giro de tablero.
+  function placeAllPieces() {
+    el.piecesLayer.innerHTML = "";
+    state.pieceNodes = {};
+    for (const sq in state.board) {
+      const p = state.board[sq];
+      const node = document.createElement("div");
+      node.className = "pc " + p.color;
+      node.style.backgroundImage = `url("assets/pieces/${pieceFile(p)}")`;
+      setPiecePos(node, sq); // posición inicial antes de insertar: no anima
+      el.piecesLayer.appendChild(node);
+      state.pieceNodes[p.id] = node;
+    }
+  }
+
+  // Redibujado completo (fondo + piezas sin animación).
   function renderBoard() {
-    const cells = el.board.children;
-    const order = [];
-    for (let r = 8; r >= 1; r--) for (let f = 0; f < 8; f++) order.push(FILES[f] + r);
-    const view = state.flipped ? [...order].reverse() : order;
-
-    for (let i = 0; i < cells.length; i++) {
-      const cell = cells[i];
-      const sq = view[i];
-      const f = sq[0], r = sq[1];
-      const dark = (FILES.indexOf(f) + Number(r)) % 2 === 0;
-      cell.dataset.square = sq;
-      cell.className = "sq " + (dark ? "dark" : "light");
-      cell.dataset.file = (state.flipped ? r === "8" : r === "1") ? f : "";
-      cell.dataset.rank = (state.flipped ? f === "h" : f === "a") ? r : "";
-
-      const piece = state.board[sq];
-      cell.innerHTML = piece
-        ? `<span class="piece ${piece.color}">${GLYPH[piece.type]}</span>`
-        : "";
-
-      if (state.lastMove && (sq === state.lastMove.from || sq === state.lastMove.to)) {
-        cell.classList.add("last");
-      }
-      if (state.selected === sq) cell.classList.add("selected");
-    }
+    paintSquares();
+    placeAllPieces();
   }
+
+  // Anima una jugada: desliza la(s) pieza(s) y desvanece la capturada.
+  function animateMove(move) {
+    const steps = [];
+    if (move.castle) {
+      const c = castleInfo(move);
+      steps.push({ from: c.kingFrom, to: c.kingTo });
+      steps.push({ from: c.rookFrom, to: c.rookTo });
+      state.lastMove = { from: c.kingFrom, to: c.kingTo };
+    } else {
+      steps.push({ from: move.from, to: move.to });
+      state.lastMove = { from: move.from, to: move.to };
+    }
+    steps.forEach(({ from, to }) => {
+      const moving = state.board[from];
+      const captured = state.board[to];
+      if (captured && (!moving || captured.id !== moving.id)) {
+        const cnode = state.pieceNodes[captured.id];
+        if (cnode) {
+          cnode.classList.add("captured");
+          const id = captured.id;
+          setTimeout(() => { cnode.remove(); delete state.pieceNodes[id]; }, 260);
+        }
+      }
+      delete state.board[from];
+      state.board[to] = moving;
+      const node = moving && state.pieceNodes[moving.id];
+      if (node) setPiecePos(node, to); // la transición CSS hace el deslizamiento
+    });
+    state.selected = null;
+    state.selectable = null;
+    state.hint = null;
+    paintSquares();
+  }
+
+  // Duración del deslizamiento (debe coincidir con la transición CSS).
+  const SLIDE_MS = 280;
 
   function runStep() {
     const ms = moves();
@@ -299,18 +394,19 @@
     if (move.by === "engine") {
       state.locked = true;
       clearHints();
+      // Pausa para leer el mensaje, anima la jugada y avanza al terminar.
       setTimeout(() => {
-        applyMove(move);
-        renderBoard();
+        animateMove(move);
         state.step++;
-        state.locked = false;
-        runStep();
-      }, 950);
+        setTimeout(() => {
+          state.locked = false;
+          runStep();
+        }, SLIDE_MS + 60);
+      }, 700);
     } else {
       state.locked = false;
       state.selected = null;
-      if (state.guided) highlightFrom(move);
-      renderBoard();
+      if (state.guided) highlightFrom(move); else { clearHints(); }
     }
   }
 
@@ -330,24 +426,21 @@
   }
 
   function clearHints() {
-    el.board.querySelectorAll(".hint-from, .hint-to, .selectable")
-      .forEach((c) => c.classList.remove("hint-from", "hint-to", "selectable"));
-  }
-  function cellOf(sq) {
-    return el.board.querySelector(`.sq[data-square="${sq}"]`);
+    state.selectable = null;
+    state.hint = null;
+    paintSquares();
   }
   function highlightFrom(move) {
-    clearHints();
-    const { from } = moveSquares(move);
-    const c = cellOf(from);
-    if (c) c.classList.add("selectable");
+    state.selectable = moveSquares(move).from;
+    state.hint = null;
+    paintSquares();
   }
   function showHint() {
     const move = moves()[state.step];
     if (!move || move.by !== "user" || state.locked) return;
     const { from, to } = moveSquares(move);
-    cellOf(from)?.classList.add("hint-from");
-    cellOf(to)?.classList.add("hint-to");
+    state.hint = { from, to };
+    paintSquares();
     setCoach(move.hint || "Mueve la pieza resaltada a la casilla iluminada.", "think");
   }
 
@@ -363,8 +456,9 @@
       if (!piece) return;
       if (sq === expectedFrom) {
         state.selected = sq;
-        renderBoard();
-        if (state.guided) cellOf(expectedTo)?.classList.add("hint-to");
+        state.selectable = null;
+        if (state.guided) state.hint = { to: expectedTo };
+        paintSquares();
       } else {
         wrongMove();
       }
@@ -373,23 +467,19 @@
 
     if (sq === state.selected) {
       state.selected = null;
-      renderBoard();
-      if (state.guided) highlightFrom(move);
+      if (state.guided) highlightFrom(move); else paintSquares();
       return;
     }
 
     if (sq === expectedTo) {
-      applyMove(move);
-      state.selected = null;
-      clearHints();
-      renderBoard();
       flashPraise();
+      animateMove(move);   // desliza la pieza
       state.step++;
       state.locked = true;
       setTimeout(() => {
         state.locked = false;
         runStep();
-      }, 650);
+      }, SLIDE_MS + 320);
     } else {
       wrongMove();
     }
@@ -397,8 +487,7 @@
 
   function wrongMove() {
     state.selected = null;
-    renderBoard();
-    if (state.guided) highlightFrom(moves()[state.step]);
+    if (state.guided) highlightFrom(moves()[state.step]); else paintSquares();
     setCoach(pick(NUDGE), "think");
     el.coachCard.classList.add("shake");
     setTimeout(() => el.coachCard.classList.remove("shake"), 400);
@@ -440,6 +529,8 @@
     for (let i = 0; i < n; i++) applyMove(ms[i]);
     state.step = n;
     state.selected = null;
+    state.selectable = null;
+    state.hint = null;
     state.locked = false;
     el.completeOverlay.classList.remove("is-open");
     renderBoard();

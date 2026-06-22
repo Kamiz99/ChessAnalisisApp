@@ -1,5 +1,7 @@
 /* Service worker mínimo para uso offline e instalación como app. */
-const CACHE = "aperturas-v3";
+const CACHE = "aperturas-v4";
+const PIECES = ["wK","wQ","wR","wB","wN","wP","bK","bQ","bR","bB","bN","bP"]
+  .map((p) => "assets/pieces/" + p + ".svg");
 const ASSETS = [
   "index.html",
   "styles.css",
@@ -7,7 +9,8 @@ const ASSETS = [
   "openings.js",
   "ai.js",
   "manifest.json",
-  "icon.svg"
+  "icon.svg",
+  ...PIECES
 ];
 
 self.addEventListener("install", (e) => {
