@@ -160,6 +160,7 @@ html, body {
 /* Tablero */
 .board-wrap { padding: 4px 0 16px; }
 .board {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
@@ -192,12 +193,35 @@ html, body {
   font-size: 9px; font-weight: 700; opacity: .5; color: #3a2a1a;
 }
 
-.piece {
+/* Capa de piezas: superpuesta al tablero, se anima con transform. */
+.pieces-layer {
+  position: absolute; inset: 0;
   pointer-events: none;
-  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.45));
 }
-.piece.white { color: #fafafa; text-shadow: 0 0 1px #000, 0 1px 2px rgba(0,0,0,.5); }
-.piece.black { color: #2a2a2e; }
+.pc {
+  position: absolute; top: 0; left: 0;
+  width: 12.5%; height: 12.5%;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 92%;            /* deja un pequeño margen dentro de la casilla */
+  -webkit-user-select: none; user-select: none;
+  will-change: transform;
+  filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.45));
+  /* deslizamiento fluido (debe coincidir con SLIDE_MS en app.js) */
+  transition: transform .28s cubic-bezier(.22,.61,.36,1), opacity .2s ease;
+}
+.pc.captured { opacity: 0; transition: opacity .2s ease; }
+.pc.sel { filter: drop-shadow(0 2px 7px rgba(138,92,255,.95)); }
+.pc.movehint { animation: pcpulse 1.3s ease-in-out infinite; }
+
+@keyframes pcpulse {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(138,92,255,0)); }
+  50%      { filter: drop-shadow(0 0 7px rgba(138,92,255,0.95)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pc { transition: none; }
+  .pc.movehint { animation: none; }
+}
 
 /* Resaltados */
 .sq.last { box-shadow: inset 0 0 0 100px rgba(244, 240, 122, 0.32); }

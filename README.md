@@ -13,6 +13,9 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
   **todas sus variaciones**, con el mínimo de decisiones: un solo botón
   «Siguiente». El progreso se guarda en tu dispositivo y cada curso muestra
   cuántas variaciones llevas (p. ej. 12/33).
+- **Tablero con piezas SVG y movimientos animados.** Piezas vectoriales del
+  set *cburnett* (el de Lichess), nítidas y consistentes, que **se deslizan**
+  suavemente al moverse en lugar de aparecer de golpe.
 - **Aprendizaje guiado jugada a jugada.** El rival mueve solo y tú vas
   encontrando la jugada correcta de la línea.
 - **≥30 variaciones reales por apertura.** Combinan líneas explicadas a mano
@@ -88,7 +91,15 @@ ai.js          Integración con la API de Claude (entrenador IA)
 sw.js          Service worker (offline / instalación)
 manifest.json  Manifiesto PWA
 icon.svg       Icono de la app
+assets/pieces/ Piezas SVG del set cburnett (wK.svg, bN.svg, …)
 ```
+
+## 🎨 Créditos
+
+Las piezas de ajedrez son el set **cburnett** de Colin M.L. Burnett,
+distribuido por [Lichess](https://github.com/lichess-org/lila) bajo licencia
+**GPLv2+**. Las aperturas provienen del dataset
+[lichess-org/chess-openings](https://github.com/lichess-org/chess-openings).
 
 ## 🔧 Datos y generación
 
