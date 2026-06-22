@@ -1,7 +1,8 @@
 # ♞ Aprende Aperturas de Ajedrez
 
 App móvil (PWA) para **aprender aperturas de ajedrez y sus variaciones** con un
-entrenador cercano que te explica cada jugada en lenguaje cordial y humano.
+entrenador cercano que te explica cada jugada en lenguaje cordial y humano, y
+que además puede **responder tus dudas con IA real (Claude)**.
 
 Inspirada en apps tipo Chessly/Chessable: tablero interactivo, barra de
 progreso, botón de pista y un asistente que te acompaña paso a paso.
@@ -9,77 +10,99 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
 ## ✨ Características
 
 - **Aprendizaje guiado jugada a jugada.** El rival mueve solo y tú vas
-  encontrando la jugada correcta de la línea principal.
+  encontrando la jugada correcta de la línea.
+- **Variaciones por apertura.** Cada apertura incluye varias líneas para
+  entrenar (línea principal + variaciones populares).
 - **Entrenador cordial.** Mensajes humanos que explican *por qué* de cada
   jugada, con ánimos cuando aciertas y pistas suaves cuando fallas.
+- **💬 Entrenador con IA real (opcional).** Pulsa 💬 y pregúntale libremente
+  sobre planes, ideas o errores típicos. Usa la API de Claude
+  (`claude-opus-4-8`). Tú pegas tu propia API key de Anthropic y se guarda
+  **solo en tu dispositivo** (`localStorage`).
 - **Modo Guiado / Examen.** En Guiado se resalta la pieza a mover; en Examen
-  pruebas tu memoria (la pista del botón 💡 sigue disponible).
+  pruebas tu memoria (la pista 💡 sigue disponible).
 - **Tablero orientado a tu bando.** Si la apertura se juega con negras, el
   tablero se gira para que veas tus piezas abajo.
-- **PWA instalable y offline.** Se puede "Añadir a la pantalla de inicio" en
-  el móvil y funciona sin conexión.
+- **PWA instalable y offline.** «Añadir a la pantalla de inicio» en el móvil;
+  funciona sin conexión (salvo el entrenador IA, que necesita internet).
 
 ## ♟ Aperturas incluidas
 
-| Apertura | Bando | Nivel |
+| Apertura | Bando | Variaciones |
 |---|---|---|
-| Sistema Londres | Blancas | Principiante |
-| Apertura Italiana | Blancas | Principiante |
-| Ruy López (Española) | Blancas | Intermedio |
-| Defensa Siciliana (Abierta) | Blancas | Intermedio |
-| Gambito de Dama | Blancas | Intermedio |
-| Defensa India de Rey | Negras | Avanzado |
+| Sistema Londres | Blancas | Principal · Contra fianchetto · Contra …c5 |
+| Apertura Italiana | Blancas | Giuoco Piano · Ataque Ng5 · Gambito Evans |
+| Ruy López | Blancas | Principal · Cambio · Berlinesa |
+| Defensa Siciliana | Blancas | Abierta · Najdorf · Cerrada |
+| Gambito de Dama | Blancas | Declinado · Aceptado · Eslava |
+| Defensa India de Rey | Negras | Clásica · Cuatro Peones · Fianchetto |
 
-## 🚀 Cómo probarla
+## 🤖 Entrenador con IA
 
-No necesita compilación. Sirve la carpeta con cualquier servidor estático:
+- En una lección, pulsa **💬** y, la primera vez, pega tu **API key de
+  Anthropic** (`sk-ant-...`). Consíguela en `console.anthropic.com`.
+- La clave se guarda en tu navegador y se usa para llamar a la API de Claude
+  directamente. **Aviso de seguridad:** úsala solo en tu dispositivo personal;
+  no publiques tu clave.
+- El entrenador conoce la apertura y la posición en la que estás, así que
+  puedes preguntarle cosas como *"¿por qué Bf4 y no Bg5?"* o *"¿qué plan tengo
+  ahora?"*.
 
+## 🚀 Cómo ejecutarla en tu teléfono
+
+### Opción A — Vercel (recomendada, gratis)
+Es un sitio estático, así que el deploy es inmediato:
+1. Sube este repo a GitHub (ya está en `Kamiz99/ChessAnalisisApp`).
+2. Entra en [vercel.com](https://vercel.com) → **Add New → Project** → importa el repo.
+3. Framework Preset: **Other**. Sin build command, output = raíz. Pulsa **Deploy**.
+4. Vercel te da una URL `https://tu-proyecto.vercel.app`. Ábrela en el móvil.
+5. En el móvil: menú del navegador → **«Añadir a pantalla de inicio»** para
+   instalarla como app (PWA).
+
+### Opción B — Probar en local
 ```bash
-# Opción 1: Python
 python3 -m http.server 8000
-
-# Opción 2: Node
-npx serve .
 ```
+Abre `http://localhost:8000` (mejor en la vista móvil del navegador).
 
-Luego abre `http://localhost:8000` en el navegador (idealmente en el móvil o en
-el modo responsive del navegador).
+> Nota: el entrenador IA hace peticiones a `api.anthropic.com` desde el
+> navegador; necesita conexión y una API key válida.
 
 ## 🗂 Estructura
 
 ```
-index.html     Estructura de las pantallas (inicio + lección)
+index.html     Pantallas (inicio + lección) y hojas (variaciones, IA, ajustes)
 styles.css     Estilos mobile-first, tema oscuro
-app.js         Motor de la lección, tablero e interacción
-openings.js    Datos de las aperturas (jugadas + textos del entrenador)
+app.js         Motor de la lección, tablero, navegación e IA (UI)
+openings.js    Datos de aperturas, variaciones y textos del entrenador
+ai.js          Integración con la API de Claude (entrenador IA)
 sw.js          Service worker (offline / instalación)
 manifest.json  Manifiesto PWA
 icon.svg       Icono de la app
 ```
 
-## 🔧 Cómo añadir una apertura
+## 🔧 Cómo añadir una apertura o variación
 
-Edita `openings.js` y añade un objeto al array `OPENINGS`. Cada jugada indica
-quién la juega (`user` o `engine`), las casillas `from`/`to` (o `castle`) y el
-texto del entrenador. No hace falta validar legalidad: la línea ya es legal.
+Edita `openings.js`. Cada apertura tiene un array `variations`; cada variación
+tiene `moves`. Cada jugada indica quién la juega (`user`/`engine`), las casillas
+`from`/`to` (o `castle` + `color`) y el texto del entrenador.
 
 ```js
 {
-  id: "mi-apertura",
-  name: "Mi Apertura",
-  emoji: "♟",
-  color: "white",            // bando del alumno
-  level: "Principiante",
-  blurb: "Breve descripción.",
-  moves: [
-    { by: "user", from: "e2", to: "e4", hint: "...", text: "..." },
-    { by: "engine", from: "e7", to: "e5", text: "..." }
+  id: "mi-apertura", name: "Mi Apertura", emoji: "♟",
+  color: "white", level: "Principiante", blurb: "Descripción.",
+  variations: [
+    { id: "main", name: "Línea principal", blurb: "...", moves: [
+      { by: "user", from: "e2", to: "e4", hint: "...", text: "..." },
+      { by: "engine", from: "e7", to: "e5", text: "..." }
+    ]}
   ]
 }
 ```
 
 ## 💡 Ideas para más adelante
 
-- Variaciones múltiples por apertura (no solo la línea principal).
-- Conectar el entrenador a una IA real para responder dudas libres.
+- Variaciones basadas en estadísticas reales (frecuencia de aparición) usando
+  la API del explorador de aperturas de Lichess.
 - Repaso espaciado y seguimiento de progreso por usuario.
+- Streaming de las respuestas del entrenador IA.

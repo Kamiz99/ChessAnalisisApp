@@ -7,13 +7,9 @@
   "use strict";
 
   // ---- Piezas (glifos Unicode). Se colorean con CSS según el color. --------
-  const GLYPH = {
-    K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟"
-  };
-
+  const GLYPH = { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" };
   const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
-  // Frases de ánimo del entrenador (tono humano y cercano).
   const PRAISE = [
     "¡Genial! 👏", "¡Esa es! 💪", "¡Perfecto!", "¡Muy bien jugado!",
     "¡Exacto! 🎯", "¡Lo tienes!", "¡Eso es, sí señor!"
@@ -28,16 +24,18 @@
   // ---- Estado global -------------------------------------------------------
   const state = {
     opening: null,      // apertura actual
+    variation: null,    // variación (línea) actual
     board: {},          // mapa casilla -> {type, color}
-    step: 0,            // índice de jugada actual
-    flipped: false,     // orientación del tablero
-    guided: true,       // modo guiado (muestra ayudas) vs examen
-    selected: null,     // casilla seleccionada por el usuario
-    lastMove: null,     // {from,to} última jugada para resaltar
-    locked: false       // bloquea entrada mientras el rival mueve
+    step: 0,
+    flipped: false,
+    guided: true,
+    selected: null,
+    lastMove: null,
+    locked: false,
+    aiHistory: [],      // conversación con el entrenador IA [{role, content}]
+    aiBusy: false
   };
 
-  // ---- Utilidades DOM ------------------------------------------------------
   const $ = (sel) => document.querySelector(sel);
   const el = {};
 
@@ -52,11 +50,20 @@
     el.lessonName = $("#lesson-name");
     el.lessonCounter = $("#lesson-counter");
     el.progressFill = $("#progress-fill");
-    el.btnHint = $("#btn-hint");
     el.btnMode = $("#btn-mode");
     el.settingsSheet = $("#settings-sheet");
+    el.variationsSheet = $("#variations-sheet");
+    el.variationsTitle = $("#variations-title");
+    el.variationsList = $("#variations-list");
     el.completeOverlay = $("#complete-overlay");
     el.completeText = $("#complete-text");
+    // IA
+    el.aiSheet = $("#ai-sheet");
+    el.aiSetup = $("#ai-setup");
+    el.aiChat = $("#ai-chat");
+    el.aiForm = $("#ai-form");
+    el.aiInput = $("#ai-input");
+    el.aiKeyInput = $("#ai-key-input");
   }
 
   // ---- Posición inicial estándar ------------------------------------------
@@ -72,7 +79,7 @@
     return b;
   }
 
-  // Devuelve las casillas implicadas en un enroque según el color del bando.
+  // Casillas implicadas en un enroque según el color del bando.
   function castleInfo(move) {
     const rank = move.color === "black" ? "8" : "1";
     if (move.castle === "O-O") {
@@ -81,7 +88,6 @@
     return { kingFrom: "e" + rank, kingTo: "c" + rank, rookFrom: "a" + rank, rookTo: "d" + rank };
   }
 
-  // Casillas de origen/destino "lógicas" de una jugada (sirve para el enroque).
   function moveSquares(move) {
     if (move.castle) {
       const c = castleInfo(move);
@@ -90,7 +96,6 @@
     return { from: move.from, to: move.to };
   }
 
-  // ---- Aplicar una jugada al tablero --------------------------------------
   function applyMove(move) {
     if (move.castle) {
       const c = castleInfo(move);
@@ -107,6 +112,10 @@
     state.lastMove = { from: move.from, to: move.to };
   }
 
+  // Atajo a las jugadas de la línea actual.
+  function moves() { return state.variation.moves; }
+  function countUserMoves(v) { return v.moves.filter((m) => m.by === "user").length; }
+
   // =========================================================================
   // PANTALLA DE INICIO
   // =========================================================================
@@ -122,17 +131,35 @@
           <span class="opening-blurb">${op.blurb}</span>
           <span class="opening-meta">
             <span class="badge">${op.level}</span>
-            <span class="badge badge-soft">${countUserMoves(op)} jugadas tuyas</span>
+            <span class="badge badge-soft">${op.variations.length} variaciones</span>
           </span>
         </span>
         <span class="opening-go">›</span>`;
-      card.addEventListener("click", () => startLesson(op));
+      card.addEventListener("click", () => openVariations(op));
       el.openingsList.appendChild(card);
     });
   }
 
-  function countUserMoves(op) {
-    return op.moves.filter((m) => m.by === "user").length;
+  // Hoja con las variaciones de una apertura.
+  function openVariations(op) {
+    el.variationsTitle.textContent = `${op.emoji} ${op.name}`;
+    el.variationsList.innerHTML = "";
+    op.variations.forEach((v) => {
+      const row = document.createElement("button");
+      row.className = "variation-row";
+      row.innerHTML = `
+        <span class="variation-info">
+          <span class="variation-name">${v.name}</span>
+          <span class="variation-blurb">${v.blurb}</span>
+        </span>
+        <span class="variation-meta">${countUserMoves(v)} jugadas ›</span>`;
+      row.addEventListener("click", () => {
+        el.variationsSheet.classList.remove("is-open");
+        startLesson(op, v);
+      });
+      el.variationsList.appendChild(row);
+    });
+    el.variationsSheet.classList.add("is-open");
   }
 
   function showScreen(name) {
@@ -144,23 +171,23 @@
   // =========================================================================
   // LECCIÓN
   // =========================================================================
-  function startLesson(opening) {
+  function startLesson(opening, variation) {
     state.opening = opening;
+    state.variation = variation;
     state.board = initialBoard();
     state.step = 0;
     state.selected = null;
     state.lastMove = null;
     state.locked = false;
-    // El alumno siempre ve sus piezas abajo: si juega con negras, giramos.
     state.flipped = opening.color === "black";
-    el.lessonName.textContent = opening.name;
+    state.aiHistory = [];
+    el.lessonName.textContent = `${opening.name} · ${variation.name}`;
     showScreen("lesson");
     buildBoardGrid();
     renderBoard();
     runStep();
   }
 
-  // Construye las 64 casillas una sola vez.
   function buildBoardGrid() {
     el.board.innerHTML = "";
     for (let r = 8; r >= 1; r--) {
@@ -170,19 +197,14 @@
         const dark = (f + r) % 2 === 0;
         cell.className = "sq " + (dark ? "dark" : "light");
         cell.dataset.square = sq;
-        // Coordenadas tenues como en apps reales.
-        if (r === 1) cell.dataset.file = FILES[f];
-        if (f === 0) cell.dataset.rank = r;
         cell.addEventListener("click", () => onSquareTap(sq));
         el.board.appendChild(cell);
       }
     }
   }
 
-  // Dibuja piezas y resaltados sin recrear la rejilla.
   function renderBoard() {
     const cells = el.board.children;
-    // Orden visual según orientación.
     const order = [];
     for (let r = 8; r >= 1; r--) for (let f = 0; f < 8; f++) order.push(FILES[f] + r);
     const view = state.flipped ? [...order].reverse() : order;
@@ -209,17 +231,15 @@
     }
   }
 
-  // Avanza la lección: muestra el mensaje del paso actual.
   function runStep() {
-    const moves = state.opening.moves;
-    if (state.step >= moves.length) return finishLesson();
+    const ms = moves();
+    if (state.step >= ms.length) return finishLesson();
 
-    const move = moves[state.step];
+    const move = ms[state.step];
     updateHud();
     setCoach(move.text, "talk");
 
     if (move.by === "engine") {
-      // El rival mueve solo tras una breve pausa.
       state.locked = true;
       clearHints();
       setTimeout(() => {
@@ -230,7 +250,6 @@
         runStep();
       }, 950);
     } else {
-      // Turno del alumno: prepara las ayudas según el modo.
       state.locked = false;
       state.selected = null;
       if (state.guided) highlightFrom(move);
@@ -239,44 +258,35 @@
   }
 
   function updateHud() {
-    const total = state.opening.moves.length;
-    const done = state.step;
-    el.progressFill.style.width = Math.round((done / total) * 100) + "%";
+    const total = moves().length;
+    el.progressFill.style.width = Math.round((state.step / total) * 100) + "%";
     el.lessonCounter.textContent = "#" + Math.min(state.step + 1, total);
   }
 
-  // ---- Entrenador (mensajes) ----------------------------------------------
   function setCoach(text, mood) {
     el.coachText.textContent = text;
     const faces = { talk: "♞", happy: "😊", think: "🤔", win: "🏆" };
     el.coachMood.textContent = faces[mood] || "♞";
     el.coachCard.classList.remove("flash");
-    // Reinicia la animación de aparición.
     void el.coachCard.offsetWidth;
     el.coachCard.classList.add("flash");
   }
 
-  // ---- Resaltados de ayuda -------------------------------------------------
   function clearHints() {
     el.board.querySelectorAll(".hint-from, .hint-to, .selectable")
       .forEach((c) => c.classList.remove("hint-from", "hint-to", "selectable"));
   }
-
   function cellOf(sq) {
     return el.board.querySelector(`.sq[data-square="${sq}"]`);
   }
-
-  // En modo guiado, marca suavemente la pieza que hay que mover.
   function highlightFrom(move) {
     clearHints();
     const { from } = moveSquares(move);
     const c = cellOf(from);
     if (c) c.classList.add("selectable");
   }
-
-  // El botón 💡 revela origen y destino.
   function showHint() {
-    const move = state.opening.moves[state.step];
+    const move = moves()[state.step];
     if (!move || move.by !== "user" || state.locked) return;
     const { from, to } = moveSquares(move);
     cellOf(from)?.classList.add("hint-from");
@@ -284,22 +294,19 @@
     setCoach(move.hint || "Mueve la pieza resaltada a la casilla iluminada.", "think");
   }
 
-  // ---- Interacción en el tablero ------------------------------------------
   function onSquareTap(sq) {
     if (state.locked) return;
-    const move = state.opening.moves[state.step];
+    const move = moves()[state.step];
     if (!move || move.by !== "user") return;
 
     const { from: expectedFrom, to: expectedTo } = moveSquares(move);
 
-    // Primer toque: seleccionar la pieza de origen correcta.
     if (!state.selected) {
       const piece = state.board[sq];
       if (!piece) return;
       if (sq === expectedFrom) {
         state.selected = sq;
         renderBoard();
-        // Marca el destino esperado de forma sutil en modo guiado.
         if (state.guided) cellOf(expectedTo)?.classList.add("hint-to");
       } else {
         wrongMove();
@@ -307,9 +314,7 @@
       return;
     }
 
-    // Segundo toque: destino.
     if (sq === state.selected) {
-      // Deseleccionar.
       state.selected = null;
       renderBoard();
       if (state.guided) highlightFrom(move);
@@ -317,14 +322,12 @@
     }
 
     if (sq === expectedTo) {
-      // ¡Jugada correcta!
       applyMove(move);
       state.selected = null;
       clearHints();
       renderBoard();
       flashPraise();
       state.step++;
-      // Pequeña pausa para que se lea el "¡bien!" antes del siguiente texto.
       state.locked = true;
       setTimeout(() => {
         state.locked = false;
@@ -338,61 +341,113 @@
   function wrongMove() {
     state.selected = null;
     renderBoard();
-    if (state.guided) highlightFrom(state.opening.moves[state.step]);
+    if (state.guided) highlightFrom(moves()[state.step]);
     setCoach(pick(NUDGE), "think");
     el.coachCard.classList.add("shake");
     setTimeout(() => el.coachCard.classList.remove("shake"), 400);
   }
-
-  function flashPraise() {
-    setCoach(pick(PRAISE), "happy");
-  }
+  function flashPraise() { setCoach(pick(PRAISE), "happy"); }
 
   function finishLesson() {
     el.progressFill.style.width = "100%";
     state.locked = true;
     el.completeText.textContent =
-      `Has aprendido la línea principal de ${state.opening.name}. ` +
+      `Has aprendido «${state.variation.name}» de ${state.opening.name}. ` +
       `¡Sigue así y serás imparable! 🚀`;
     el.completeOverlay.classList.add("is-open");
   }
 
-  function pick(arr) {
-    return arr[Math.floor(Math.random() * arr.length)];
-  }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
-  // =========================================================================
-  // NAVEGACIÓN ENTRE PASOS (flechas ‹ ›)
-  // =========================================================================
-  // Reconstruye el tablero ejecutando las primeras N jugadas (sin animación).
+  // ---- Navegación entre pasos (flechas) -----------------------------------
   function gotoStep(n) {
-    const moves = state.opening.moves;
-    n = Math.max(0, Math.min(n, moves.length));
+    const ms = moves();
+    n = Math.max(0, Math.min(n, ms.length));
     state.board = initialBoard();
     state.lastMove = null;
-    for (let i = 0; i < n; i++) applyMove(moves[i]);
+    for (let i = 0; i < n; i++) applyMove(ms[i]);
     state.step = n;
     state.selected = null;
     state.locked = false;
     el.completeOverlay.classList.remove("is-open");
     renderBoard();
-    if (n >= moves.length) return finishLesson();
+    if (n >= ms.length) return finishLesson();
     runStep();
   }
-
   function nextStep() {
-    const move = state.opening.moves[state.step];
+    const move = moves()[state.step];
     if (!move) return;
-    // Avanzar manualmente "juega" el paso actual aunque sea del usuario.
     applyMove(move);
     state.step++;
     renderBoard();
-    if (state.step >= state.opening.moves.length) return finishLesson();
+    if (state.step >= moves().length) return finishLesson();
     runStep();
   }
+  function prevStep() { gotoStep(state.step - 1); }
 
-  function prevStep() {
-    gotoStep(state.step - 1);
+  // =========================================================================
+  // ENTRENADOR IA
+  // =========================================================================
+  function aiContext() {
+    return {
+      openingName: state.opening.name,
+      variationName: state.variation.name,
+      color: state.opening.color,
+      moves: state.variation.moves,
+      step: state.step
+    };
+  }
+
+  function openAi() {
+    refreshAiVisibility();
+    renderChat();
+    el.aiSheet.classList.add("is-open");
+    if (window.CoachAI.hasKey()) setTimeout(() => el.aiInput.focus(), 200);
+  }
+
+  function refreshAiVisibility() {
+    const hasKey = window.CoachAI.hasKey();
+    el.aiSetup.style.display = hasKey ? "none" : "block";
+    el.aiChat.style.display = hasKey ? "flex" : "none";
+    el.aiForm.style.display = hasKey ? "flex" : "none";
+  }
+
+  function renderChat() {
+    el.aiChat.innerHTML = "";
+    addBubble("coach",
+      `¡Hola! 😊 Soy tu entrenador. Pregúntame lo que quieras sobre «${state.variation.name}» ` +
+      `de ${state.opening.name}: ideas, planes, por qué de cada jugada…`);
+    state.aiHistory.forEach((m) => addBubble(m.role === "user" ? "me" : "coach", m.content));
+    if (state.aiBusy) addBubble("coach", "…", true);
+    el.aiChat.scrollTop = el.aiChat.scrollHeight;
+  }
+
+  function addBubble(who, text, typing) {
+    const b = document.createElement("div");
+    b.className = "bubble bubble-" + who + (typing ? " typing" : "");
+    b.textContent = text;
+    el.aiChat.appendChild(b);
+  }
+
+  async function sendAi(text) {
+    if (state.aiBusy) return;
+    state.aiHistory.push({ role: "user", content: text });
+    state.aiBusy = true;
+    renderChat();
+    try {
+      const reply = await window.CoachAI.ask(state.aiHistory, aiContext());
+      state.aiHistory.push({ role: "assistant", content: reply });
+    } catch (err) {
+      let msg;
+      if (err.message === "NO_KEY") msg = "Primero añade tu API key con el botón ⚙️ de arriba.";
+      else if (err.status === 401) msg = "La clave no es válida. Revísala con el botón ⚙️.";
+      else if (err.status === 429) msg = "Vamos rápido 😅 Espera un momento y prueba otra vez.";
+      else msg = "Ups, no pude conectar: " + err.message;
+      state.aiHistory.push({ role: "assistant", content: msg });
+    } finally {
+      state.aiBusy = false;
+      renderChat();
+    }
   }
 
   // =========================================================================
@@ -401,13 +456,14 @@
   function bindEvents() {
     $("#btn-back").addEventListener("click", () => showScreen("home"));
     $("#btn-hint").addEventListener("click", showHint);
+    $("#btn-ai").addEventListener("click", openAi);
 
     $("#btn-mode").addEventListener("click", () => {
       state.guided = !state.guided;
-      el.btnMode.textContent = "Modo: " + (state.guided ? "Guiado" : "Examen");
+      el.btnMode.textContent = state.guided ? "Guiado" : "Examen";
       el.btnMode.setAttribute("aria-pressed", String(!state.guided));
       clearHints();
-      const m = state.opening?.moves[state.step];
+      const m = moves()[state.step];
       if (state.guided && m && m.by === "user") highlightFrom(m);
       setCoach(
         state.guided
@@ -423,7 +479,9 @@
     // Ajustes
     $("#btn-settings").addEventListener("click", () => el.settingsSheet.classList.add("is-open"));
     document.querySelectorAll("[data-close-sheet]").forEach((n) =>
-      n.addEventListener("click", () => el.settingsSheet.classList.remove("is-open")));
+      n.addEventListener("click", (e) => {
+        e.target.closest(".sheet").classList.remove("is-open");
+      }));
     $("#set-flip").addEventListener("click", () => {
       state.flipped = !state.flipped;
       renderBoard();
@@ -431,7 +489,7 @@
     });
     $("#set-restart").addEventListener("click", () => {
       el.settingsSheet.classList.remove("is-open");
-      startLesson(state.opening);
+      startLesson(state.opening, state.variation);
     });
     $("#set-home").addEventListener("click", () => {
       el.settingsSheet.classList.remove("is-open");
@@ -441,11 +499,32 @@
     // Felicitación final
     $("#complete-replay").addEventListener("click", () => {
       el.completeOverlay.classList.remove("is-open");
-      startLesson(state.opening);
+      startLesson(state.opening, state.variation);
     });
     $("#complete-home").addEventListener("click", () => {
       el.completeOverlay.classList.remove("is-open");
       showScreen("home");
+    });
+
+    // Entrenador IA
+    $("#ai-config-btn").addEventListener("click", () => {
+      el.aiSetup.style.display = el.aiSetup.style.display === "none" ? "block" : "none";
+      el.aiKeyInput.value = window.CoachAI.getKey();
+    });
+    $("#ai-key-save").addEventListener("click", () => {
+      const k = el.aiKeyInput.value.trim();
+      window.CoachAI.setKey(k);
+      el.aiKeyInput.value = "";
+      refreshAiVisibility();
+      renderChat();
+      if (window.CoachAI.hasKey()) el.aiInput.focus();
+    });
+    el.aiForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const text = el.aiInput.value.trim();
+      if (!text) return;
+      el.aiInput.value = "";
+      sendAi(text);
     });
   }
 
@@ -457,7 +536,6 @@
     renderHome();
     bindEvents();
 
-    // Service worker para uso offline / instalación como app.
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("sw.js").catch(() => {});

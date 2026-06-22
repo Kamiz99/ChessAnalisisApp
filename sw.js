@@ -1,10 +1,11 @@
 /* Service worker mínimo para uso offline e instalación como app. */
-const CACHE = "aperturas-v1";
+const CACHE = "aperturas-v2";
 const ASSETS = [
   "index.html",
   "styles.css",
   "app.js",
   "openings.js",
+  "ai.js",
   "manifest.json",
   "icon.svg"
 ];
