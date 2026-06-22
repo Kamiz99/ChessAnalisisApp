@@ -9,10 +9,16 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
 
 ## ✨ Características
 
+- **Cursos por apertura.** Eliges una apertura y la app te guía en orden por
+  **todas sus variaciones**, con el mínimo de decisiones: un solo botón
+  «Siguiente». El progreso se guarda en tu dispositivo y cada curso muestra
+  cuántas variaciones llevas (p. ej. 12/33).
 - **Aprendizaje guiado jugada a jugada.** El rival mueve solo y tú vas
   encontrando la jugada correcta de la línea.
-- **Variaciones por apertura.** Cada apertura incluye varias líneas para
-  entrenar (línea principal + variaciones populares).
+- **≥30 variaciones reales por apertura.** Combinan líneas explicadas a mano
+  con variaciones del dataset ECO de
+  [lichess-org/chess-openings](https://github.com/lichess-org/chess-openings)
+  (198 líneas en total, generadas y validadas automáticamente).
 - **Entrenador cordial.** Mensajes humanos que explican *por qué* de cada
   jugada, con ánimos cuando aciertas y pistas suaves cuando fallas.
 - **💬 Entrenador con IA real (opcional).** Pulsa 💬 y pregúntale libremente
@@ -26,16 +32,19 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
 - **PWA instalable y offline.** «Añadir a la pantalla de inicio» en el móvil;
   funciona sin conexión (salvo el entrenador IA, que necesita internet).
 
-## ♟ Aperturas incluidas
+## ♟ Cursos incluidos (6 aperturas · 33 variaciones cada uno)
 
-| Apertura | Bando | Variaciones |
+| Curso | Bando | Variaciones |
 |---|---|---|
-| Sistema Londres | Blancas | Principal · Contra fianchetto · Contra …c5 |
-| Apertura Italiana | Blancas | Giuoco Piano · Ataque Ng5 · Gambito Evans |
-| Ruy López | Blancas | Principal · Cambio · Berlinesa |
-| Defensa Siciliana | Blancas | Abierta · Najdorf · Cerrada |
-| Gambito de Dama | Blancas | Declinado · Aceptado · Eslava |
-| Defensa India de Rey | Negras | Clásica · Cuatro Peones · Fianchetto |
+| Sistema Londres | Blancas | 33 |
+| Apertura Italiana | Blancas | 33 |
+| Ruy López | Blancas | 33 |
+| Defensa Siciliana | Blancas | 33 |
+| Gambito de Dama | Blancas | 33 |
+| Defensa India de Rey | Negras | 33 |
+
+Las 3 primeras variaciones de cada curso están explicadas a mano con texto
+detallado; el resto provienen del dataset ECO real de Lichess.
 
 ## 🤖 Entrenador con IA
 
@@ -81,24 +90,23 @@ manifest.json  Manifiesto PWA
 icon.svg       Icono de la app
 ```
 
-## 🔧 Cómo añadir una apertura o variación
+## 🔧 Datos y generación
 
-Edita `openings.js`. Cada apertura tiene un array `variations`; cada variación
-tiene `moves`. Cada jugada indica quién la juega (`user`/`engine`), las casillas
-`from`/`to` (o `castle` + `color`) y el texto del entrenador.
+`openings.js` está **generado** por `tools/gen.js`, que:
+1. conserva las variaciones curadas a mano (texto rico), y
+2. descarga el dataset ECO de Lichess (`a..e.tsv`) y convierte su PGN
+   (notación SAN) al formato del motor con un mini-motor de ajedrez propio
+   (genera movimientos legales para resolver ambigüedades de SAN).
 
-```js
-{
-  id: "mi-apertura", name: "Mi Apertura", emoji: "♟",
-  color: "white", level: "Principiante", blurb: "Descripción.",
-  variations: [
-    { id: "main", name: "Línea principal", blurb: "...", moves: [
-      { by: "user", from: "e2", to: "e4", hint: "...", text: "..." },
-      { by: "engine", from: "e7", to: "e5", text: "..." }
-    ]}
-  ]
-}
+Para regenerarlo (necesita los TSV en `/tmp/`):
+```bash
+node tools/gen.js > openings.js
 ```
+
+> Nota: la API del explorador de aperturas de Lichess
+> (`explorer.lichess.ovh`, con frecuencias reales de partidas) está bloqueada
+> por la política de red de este entorno. Si la habilitas, se podría filtrar
+> por frecuencia de aparición (p. ej. >65%) en lugar de por nombre ECO.
 
 ## 💡 Ideas para más adelante
 

@@ -1,5 +1,5 @@
 /* Service worker mínimo para uso offline e instalación como app. */
-const CACHE = "aperturas-v2";
+const CACHE = "aperturas-v3";
 const ASSETS = [
   "index.html",
   "styles.css",

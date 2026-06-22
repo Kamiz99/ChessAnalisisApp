@@ -25,6 +25,7 @@
   const state = {
     opening: null,      // apertura actual
     variation: null,    // variación (línea) actual
+    courseIndex: 0,     // posición dentro del curso (índice de variación)
     board: {},          // mapa casilla -> {type, color}
     step: 0,
     flipped: false,
@@ -114,7 +115,36 @@
 
   // Atajo a las jugadas de la línea actual.
   function moves() { return state.variation.moves; }
-  function countUserMoves(v) { return v.moves.filter((m) => m.by === "user").length; }
+
+  // ---- Progreso del curso (localStorage) ----------------------------------
+  const PROGRESS_KEY = "aperturas_progreso";
+  function loadProgress() {
+    try { return JSON.parse(localStorage.getItem(PROGRESS_KEY)) || {}; }
+    catch (e) { return {}; }
+  }
+  function completedIds(openingId) {
+    const p = loadProgress();
+    return new Set(p[openingId] || []);
+  }
+  function markCompleted(openingId, variationId) {
+    const p = loadProgress();
+    const set = new Set(p[openingId] || []);
+    set.add(variationId);
+    p[openingId] = [...set];
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); } catch (e) {}
+  }
+  function progressCount(op) {
+    const done = completedIds(op.id);
+    let n = 0;
+    op.variations.forEach((v) => { if (done.has(v.id)) n++; });
+    return n;
+  }
+  // Primer índice de variación sin completar (o 0 si el curso ya está completo).
+  function firstPending(op) {
+    const done = completedIds(op.id);
+    const idx = op.variations.findIndex((v) => !done.has(v.id));
+    return idx === -1 ? 0 : idx;
+  }
 
   // =========================================================================
   // PANTALLA DE INICIO
@@ -122,6 +152,12 @@
   function renderHome() {
     el.openingsList.innerHTML = "";
     OPENINGS.forEach((op) => {
+      const total = op.variations.length;
+      const done = progressCount(op);
+      const pct = Math.round((done / total) * 100);
+      const cta = done === 0 ? "Empezar curso"
+        : done >= total ? "¡Curso completado! Repasar"
+        : "Continuar curso";
       const card = document.createElement("button");
       card.className = "opening-card";
       card.innerHTML = `
@@ -129,33 +165,44 @@
         <span class="opening-info">
           <span class="opening-name">${op.name}</span>
           <span class="opening-blurb">${op.blurb}</span>
+          <span class="course-bar"><span class="course-bar-fill" style="width:${pct}%"></span></span>
           <span class="opening-meta">
             <span class="badge">${op.level}</span>
-            <span class="badge badge-soft">${op.variations.length} variaciones</span>
+            <span class="badge badge-soft">${done}/${total}</span>
+            <span class="course-cta">${cta}</span>
           </span>
         </span>
         <span class="opening-go">›</span>`;
-      card.addEventListener("click", () => openVariations(op));
+      card.addEventListener("click", () => startCourse(op));
       el.openingsList.appendChild(card);
     });
   }
 
-  // Hoja con las variaciones de una apertura.
+  // Empieza (o continúa) el curso de una apertura por la primera variación
+  // pendiente. El usuario no tiene que elegir nada más.
+  function startCourse(op) {
+    startLesson(op, firstPending(op));
+  }
+
+  // Índice opcional: hoja con todas las variaciones (para saltar a una).
   function openVariations(op) {
+    const done = completedIds(op.id);
     el.variationsTitle.textContent = `${op.emoji} ${op.name}`;
     el.variationsList.innerHTML = "";
-    op.variations.forEach((v) => {
+    op.variations.forEach((v, idx) => {
+      const isDone = done.has(v.id);
       const row = document.createElement("button");
-      row.className = "variation-row";
+      row.className = "variation-row" + (isDone ? " is-done" : "");
       row.innerHTML = `
+        <span class="variation-check">${isDone ? "✓" : (idx + 1)}</span>
         <span class="variation-info">
           <span class="variation-name">${v.name}</span>
           <span class="variation-blurb">${v.blurb}</span>
         </span>
-        <span class="variation-meta">${countUserMoves(v)} jugadas ›</span>`;
+        <span class="variation-meta">›</span>`;
       row.addEventListener("click", () => {
         el.variationsSheet.classList.remove("is-open");
-        startLesson(op, v);
+        startLesson(op, idx);
       });
       el.variationsList.appendChild(row);
     });
@@ -168,12 +215,21 @@
     window.scrollTo(0, 0);
   }
 
+  // Vuelve al inicio refrescando las barras de progreso de cada curso.
+  function goHome() {
+    el.completeOverlay.classList.remove("is-open");
+    renderHome();
+    showScreen("home");
+  }
+
   // =========================================================================
   // LECCIÓN
   // =========================================================================
-  function startLesson(opening, variation) {
+  function startLesson(opening, index) {
+    index = Math.max(0, Math.min(index, opening.variations.length - 1));
     state.opening = opening;
-    state.variation = variation;
+    state.courseIndex = index;
+    state.variation = opening.variations[index];
     state.board = initialBoard();
     state.step = 0;
     state.selected = null;
@@ -181,7 +237,8 @@
     state.locked = false;
     state.flipped = opening.color === "black";
     state.aiHistory = [];
-    el.lessonName.textContent = `${opening.name} · ${variation.name}`;
+    el.lessonName.textContent =
+      `Lección ${index + 1}/${opening.variations.length} · ${state.variation.name}`;
     showScreen("lesson");
     buildBoardGrid();
     renderBoard();
@@ -351,9 +408,24 @@
   function finishLesson() {
     el.progressFill.style.width = "100%";
     state.locked = true;
-    el.completeText.textContent =
-      `Has aprendido «${state.variation.name}» de ${state.opening.name}. ` +
-      `¡Sigue así y serás imparable! 🚀`;
+    markCompleted(state.opening.id, state.variation.id);
+
+    const total = state.opening.variations.length;
+    const done = progressCount(state.opening);
+    const hasNext = state.courseIndex < total - 1;
+    const title = $("#complete-title");
+    const nextBtn = $("#complete-next");
+
+    if (done >= total) {
+      title.textContent = "🏆 ¡Curso completado!";
+      el.completeText.textContent =
+        `¡Has dominado las ${total} variaciones de ${state.opening.name}! Un trabajo enorme. 🎉`;
+    } else {
+      title.textContent = "¡Variación completada!";
+      el.completeText.textContent =
+        `«${state.variation.name}» aprendida. Llevas ${done} de ${total} en ${state.opening.name}. ¡Sigue así! 🚀`;
+    }
+    nextBtn.style.display = hasNext ? "block" : "none";
     el.completeOverlay.classList.add("is-open");
   }
 
@@ -454,7 +526,7 @@
   // EVENTOS DE UI
   // =========================================================================
   function bindEvents() {
-    $("#btn-back").addEventListener("click", () => showScreen("home"));
+    $("#btn-back").addEventListener("click", goHome);
     $("#btn-hint").addEventListener("click", showHint);
     $("#btn-ai").addEventListener("click", openAi);
 
@@ -489,21 +561,29 @@
     });
     $("#set-restart").addEventListener("click", () => {
       el.settingsSheet.classList.remove("is-open");
-      startLesson(state.opening, state.variation);
+      startLesson(state.opening, state.courseIndex);
+    });
+    $("#set-index").addEventListener("click", () => {
+      el.settingsSheet.classList.remove("is-open");
+      openVariations(state.opening);
     });
     $("#set-home").addEventListener("click", () => {
       el.settingsSheet.classList.remove("is-open");
-      showScreen("home");
+      goHome();
     });
 
     // Felicitación final
+    $("#complete-next").addEventListener("click", () => {
+      el.completeOverlay.classList.remove("is-open");
+      startLesson(state.opening, state.courseIndex + 1);
+    });
     $("#complete-replay").addEventListener("click", () => {
       el.completeOverlay.classList.remove("is-open");
-      startLesson(state.opening, state.variation);
+      startLesson(state.opening, state.courseIndex);
     });
     $("#complete-home").addEventListener("click", () => {
       el.completeOverlay.classList.remove("is-open");
-      showScreen("home");
+      goHome();
     });
 
     // Entrenador IA
