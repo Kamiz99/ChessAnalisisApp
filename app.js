@@ -151,14 +151,15 @@
     }
     return m;
   }
+  const STATUS_RANK = { "": 0, learned: 1, recalled1: 2, memorized: 3 };
   function getStatus(openingId, varId) { return statusMap(openingId)[varId] || ""; }
   function setStatus(openingId, varId, status) {
     const p = loadProgress();
     let m = p[openingId];
     if (Array.isArray(m)) { const o = {}; m.forEach((id) => { o[id] = "memorized"; }); m = o; }
     m = m || {};
-    // No degradar: una vez memorizada, sigue memorizada.
-    if (m[varId] === "memorized" && status === "learned") return;
+    // No degradar el progreso (p. ej. memorizada nunca baja a aprendida).
+    if (STATUS_RANK[status] < STATUS_RANK[m[varId] || ""]) return;
     m[varId] = status;
     p[openingId] = m;
     try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); } catch (e) {}
@@ -168,11 +169,15 @@
     return op.variations.filter((v) => m[v.id] === "memorized").length;
   }
   // Siguiente paso pendiente del curso: índice + fase con la que empezar.
+  // Estados: "" → learn ; "learned"/"recalled1" → recall ; "memorized" → hecho.
   function firstPending(op) {
     const m = statusMap(op.id);
     for (let i = 0; i < op.variations.length; i++) {
       const st = m[op.variations[i].id] || "";
-      if (st !== "memorized") return { index: i, phase: st === "learned" ? "recall" : "learn" };
+      if (st !== "memorized") {
+        const phase = (st === "learned" || st === "recalled1") ? "recall" : "learn";
+        return { index: i, phase };
+      }
     }
     return { index: 0, phase: "learn" };
   }
@@ -223,7 +228,7 @@
     el.variationsList.innerHTML = "";
     op.variations.forEach((v, idx) => {
       const st = m[v.id] || "";
-      const mark = st === "memorized" ? "✓" : st === "learned" ? "½" : (idx + 1);
+      const mark = st === "memorized" ? "✓" : (st === "learned" || st === "recalled1") ? "½" : (idx + 1);
       const row = document.createElement("button");
       row.className = "variation-row" + (st === "memorized" ? " is-done" : "");
       row.innerHTML = `
@@ -235,8 +240,8 @@
         <span class="variation-meta">›</span>`;
       row.addEventListener("click", () => {
         el.variationsSheet.classList.remove("is-open");
-        // Si ya está aprendida, salta directo a la fase de memoria.
-        startLesson(op, idx, st === "learned" ? "recall" : "learn");
+        // Si ya está aprendida o repetida una vez, salta a la fase de memoria.
+        startLesson(op, idx, (st === "learned" || st === "recalled1") ? "recall" : "learn");
       });
       el.variationsList.appendChild(row);
     });
@@ -278,7 +283,13 @@
     state.flipped = opening.color === "black";
     state.aiHistory = [];
     el.btnMode.textContent = state.guided ? "Guiado" : "Memoria";
-    const tag = phase === "learn" ? "🟢 Aprender" : "🧠 De memoria";
+    let tag;
+    if (phase === "learn") {
+      tag = "🟢 Aprender";
+    } else {
+      const passNo = getStatus(opening.id, state.variation.id) === "recalled1" ? 2 : 1;
+      tag = `🧠 De memoria (${passNo}/2)`;
+    }
     el.lessonName.textContent =
       `${tag} · ${index + 1}/${opening.variations.length} · ${state.variation.name}`;
     showScreen("lesson");
@@ -461,13 +472,17 @@
     el.lessonCounter.textContent = "#" + Math.min(state.step + 1, total);
   }
 
+  let lastCoachText = "";
   function setCoach(text, mood) {
-    el.coachText.textContent = text;
     const faces = { talk: "♞", happy: "😊", think: "🤔", win: "🏆" };
     el.coachMood.textContent = faces[mood] || "♞";
-    el.coachCard.classList.remove("flash");
-    void el.coachCard.offsetWidth;
-    el.coachCard.classList.add("flash");
+    if (text === lastCoachText) return; // misma burbuja: no repintar ni parpadear
+    lastCoachText = text;
+    el.coachText.textContent = text;
+    // Fundido suave del texto en la MISMA burbuja (sin "pop" ni saltos).
+    el.coachText.classList.remove("fade");
+    void el.coachText.offsetWidth;
+    el.coachText.classList.add("fade");
   }
 
   function clearHints() {
@@ -641,7 +656,7 @@
     const total = op.variations.length;
 
     if (state.phase === "learn") {
-      // Aprendida con ayuda → la app pasa SOLA a la fase de memoria.
+      // Aprendida con ayuda → la app pasa SOLA a la primera repetición de memoria.
       setStatus(op.id, v.id, "learned");
       flashThenAdvance(
         "¡Aprendida! 🙌",
@@ -651,7 +666,20 @@
       return;
     }
 
-    // Fase de memoria superada → memorizada.
+    // Fase de memoria. Se repite DOS veces para fijarla mejor.
+    const prev = getStatus(op.id, v.id);
+    if (prev !== "recalled1") {
+      // Completó la 1ª repetición → la app pasa SOLA a la 2ª.
+      setStatus(op.id, v.id, "recalled1");
+      flashThenAdvance(
+        "¡Una vez de memoria! 💪",
+        "Una más y queda grabada. La repetimos otra vez sin ayuda.",
+        () => startLesson(op, state.courseIndex, "recall")
+      );
+      return;
+    }
+
+    // 2ª repetición superada → memorizada.
     setStatus(op.id, v.id, "memorized");
     const done = memorizedCount(op);
 
