@@ -15,7 +15,7 @@ const fs = require("fs");
 
 // ---- Curadas (textos ricos) ---------------------------------------------
 global.window = {};
-require("../openings.js"); // mantenemos las variaciones escritas a mano
+require("./curated.js"); // semilla con las variaciones escritas a mano (texto rico)
 const CURATED = window.OPENINGS;
 
 // ---- Mini-motor de ajedrez (SAN -> from/to) -----------------------------
@@ -236,44 +236,64 @@ const FAMILIES = {
 const TARGET_ECO = 30; // variaciones ECO mínimas por apertura
 
 // ---- Generación de textos en español ------------------------------------
-const PIECE_ES = { P: "Peón", N: "Caballo", B: "Alfil", R: "Torre", Q: "Dama", K: "Rey" };
-function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-function describe(mv, board) {
-  if (mv.castle) return mv.castle === "O-O" ? "enroque corto" : "enroque largo";
-  const piece = board[mv.from];
-  const name = PIECE_ES[piece.t];
-  const isCap = !!board[mv.to];
-  if (piece.t === "P") return isCap ? `peón captura en ${mv.to}` : `peón a ${mv.to}`;
-  return isCap ? `${name.toLowerCase()} captura en ${mv.to}` : `${name.toLowerCase()} a ${mv.to}`;
+// Tono de entrenador: primera persona del plural ("nosotros"), explica con
+// naturalidad y termina con la jugada (estilo del ejemplo del usuario).
+const ART = { P: "el peón", N: "el caballo", B: "el alfil", R: "la torre", Q: "la dama", K: "el rey" };
+const DEV = { N: "Desarrollamos", B: "Desarrollamos", R: "Activamos", Q: "Sacamos", K: "Llevamos", P: "" };
+
+function ladoDe(mv) { return mv.castle === "O-O" ? "corto" : "largo"; }
+
+// Texto del entrenador para una jugada del alumno ("nosotros").
+function userText(mv, b) {
+  if (mv.castle) return `Enrocamos ${ladoDe(mv)} y ponemos el rey a salvo.`;
+  const t = b[mv.from].t, cap = !!b[mv.to];
+  if (t === "P") return cap ? `Capturamos en ${mv.to} con el peón.` : `Avanzamos el peón a ${mv.to}.`;
+  if (cap) return `Capturamos en ${mv.to} con ${ART[t]}.`;
+  return `${DEV[t]} ${ART[t]} a ${mv.to}.`;
+}
+
+// Texto para la jugada del rival.
+function engineText(mv, b, side) {
+  if (mv.castle) return `${side} enrocan ${ladoDe(mv)}.`;
+  const t = b[mv.from].t, cap = !!b[mv.to];
+  if (t === "P") return cap ? `${side} capturan en ${mv.to} con el peón.` : `${side} avanzan el peón a ${mv.to}.`;
+  if (cap) return `${side} capturan en ${mv.to} con ${ART[t]}.`;
+  return `${side} desarrollan ${ART[t]} a ${mv.to}.`;
+}
+
+// Pista corta para el alumno (revela el movimiento concreto).
+function hintText(mv, b) {
+  if (mv.castle) return `Enrocamos ${ladoDe(mv)}: toca el rey y luego su casilla.`;
+  return `Movemos ${ART[b[mv.from].t]} de ${mv.from} a ${mv.to}.`;
+}
+
+function applyToDesc(b, mv) {
+  if (mv.castle) {
+    const rank = (mv.color === "white") ? "1" : "8";
+    const ks = mv.castle === "O-O";
+    if (b["e" + rank]) b[(ks ? "g" : "c") + rank] = b["e" + rank];
+    delete b["e" + rank];
+    const rf = ks ? "h" : "a", rt = ks ? "f" : "d";
+    b[rt + rank] = b[rf + rank]; delete b[rf + rank];
+  } else {
+    b[mv.to] = b[mv.from]; delete b[mv.from];
+  }
 }
 
 // Reconstruye textos recorriendo el tablero (para saber capturas/piezas).
 function buildLine(moves, userIsWhite, name) {
   const b = startBoard();
+  const side = userIsWhite ? "Las negras" : "Las blancas";
   const out = [];
   moves.forEach((mv, ply) => {
     const by = ((ply % 2 === 0) === userIsWhite) ? "user" : "engine";
-    const desc = describe(mv, b);
-    // aplicar al tablero de descripción
-    if (mv.castle) {
-      const rank = (mv.color === "white") ? "1" : "8";
-      const ks = mv.castle === "O-O";
-      b["e" + rank] && (b[(ks ? "g" : "c") + rank] = b["e" + rank]);
-      delete b["e" + rank];
-      const rf = ks ? "h" : "a", rt = ks ? "f" : "d";
-      b[rt + rank] = b[rf + rank]; delete b[rf + rank];
-    } else {
-      b[mv.to] = b[mv.from]; delete b[mv.from];
-    }
-    const entry = by === "user"
-      ? { by, ...mv, hint: `${cap(desc)} (desde ${mv.from || "el rey"}).`, text: `Te toca: ${desc}.` }
-      : { by, ...mv, text: `El rival juega: ${desc}.` };
-    if (ply === 0) entry.text = (by === "user")
-      ? `Empezamos «${name}». Te toca: ${desc}.`
-      : `Empezamos «${name}». El rival abre: ${desc}.`;
+    let text = by === "user" ? userText(mv, b) : engineText(mv, b, side);
+    if (ply === 0) text = `Entramos en «${name}». ` + text;
+    const hint = by === "user" ? hintText(mv, b) : undefined; // antes de aplicar
+    applyToDesc(b, mv);
+    const entry = by === "user" ? { by, ...mv, hint, text } : { by, ...mv, text };
     out.push(entry);
   });
-  // mensaje de cierre cálido en la última jugada del usuario
   return out;
 }
 

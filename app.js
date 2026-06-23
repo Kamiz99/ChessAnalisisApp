@@ -16,13 +16,20 @@
 
   const PRAISE = [
     "¡Genial! 👏", "¡Esa es! 💪", "¡Perfecto!", "¡Muy bien jugado!",
-    "¡Exacto! 🎯", "¡Lo tienes!", "¡Eso es, sí señor!"
+    "¡Exacto! 🎯", "¡Lo tenemos!", "¡Eso es, seguimos!"
   ];
   const NUDGE = [
-    "Casi… esa no es. Inténtalo de nuevo, tú puedes 🙂",
-    "Mmm, prueba otra pieza. Si quieres, pulsa 💡 Pista.",
-    "No pasa nada, vuelve a intentarlo. Te doy una pista con el botón 💡.",
-    "Esa jugada no toca aún. ¿Probamos otra vez?"
+    "Casi… esa no es. Volvemos a intentarlo, ¡tú puedes! 🙂",
+    "Mmm, probamos con otra pieza. Si quieres, pulsa 💡 Pista.",
+    "No pasa nada, lo intentamos de nuevo. El botón 💡 te da una pista.",
+    "Esa jugada no toca aún. ¿La buscamos otra vez?"
+  ];
+  // En fase «de memoria» no revelamos la jugada: solo animamos a recordarla.
+  const RECALL_PROMPTS = [
+    "De memoria: ¿recuerdas la jugada? 🤔",
+    "Sin ayuda esta vez. ¿Cuál es nuestro movimiento?",
+    "Tu turno. Confía en lo que aprendimos 💪",
+    "¿Qué jugamos aquí? Tú lo sabes."
   ];
 
   // ---- Estado global -------------------------------------------------------
@@ -30,6 +37,9 @@
     opening: null,      // apertura actual
     variation: null,    // variación (línea) actual
     courseIndex: 0,     // posición dentro del curso (índice de variación)
+    phase: "learn",     // "learn" (con ayuda) | "recall" (de memoria)
+    usedHelp: false,    // ¿se usó ayuda/falló en esta fase de memoria?
+    onNext: null,       // acción del botón principal del overlay final
     board: {},          // mapa casilla -> {type, color}
     step: 0,
     flipped: false,
@@ -126,33 +136,45 @@
   function moves() { return state.variation.moves; }
 
   // ---- Progreso del curso (localStorage) ----------------------------------
+  // Estado por variación: "" (sin ver) | "learned" (aprendida con ayuda) |
+  // "memorized" (repetida de memoria, sin ayuda).
   const PROGRESS_KEY = "aperturas_progreso";
   function loadProgress() {
     try { return JSON.parse(localStorage.getItem(PROGRESS_KEY)) || {}; }
     catch (e) { return {}; }
   }
-  function completedIds(openingId) {
+  function statusMap(openingId) {
     const p = loadProgress();
-    return new Set(p[openingId] || []);
+    let m = p[openingId] || {};
+    if (Array.isArray(m)) { // migra formato antiguo (array = memorizadas)
+      const o = {}; m.forEach((id) => { o[id] = "memorized"; }); m = o;
+    }
+    return m;
   }
-  function markCompleted(openingId, variationId) {
+  function getStatus(openingId, varId) { return statusMap(openingId)[varId] || ""; }
+  function setStatus(openingId, varId, status) {
     const p = loadProgress();
-    const set = new Set(p[openingId] || []);
-    set.add(variationId);
-    p[openingId] = [...set];
+    let m = p[openingId];
+    if (Array.isArray(m)) { const o = {}; m.forEach((id) => { o[id] = "memorized"; }); m = o; }
+    m = m || {};
+    // No degradar: una vez memorizada, sigue memorizada.
+    if (m[varId] === "memorized" && status === "learned") return;
+    m[varId] = status;
+    p[openingId] = m;
     try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); } catch (e) {}
   }
-  function progressCount(op) {
-    const done = completedIds(op.id);
-    let n = 0;
-    op.variations.forEach((v) => { if (done.has(v.id)) n++; });
-    return n;
+  function memorizedCount(op) {
+    const m = statusMap(op.id);
+    return op.variations.filter((v) => m[v.id] === "memorized").length;
   }
-  // Primer índice de variación sin completar (o 0 si el curso ya está completo).
+  // Siguiente paso pendiente del curso: índice + fase con la que empezar.
   function firstPending(op) {
-    const done = completedIds(op.id);
-    const idx = op.variations.findIndex((v) => !done.has(v.id));
-    return idx === -1 ? 0 : idx;
+    const m = statusMap(op.id);
+    for (let i = 0; i < op.variations.length; i++) {
+      const st = m[op.variations[i].id] || "";
+      if (st !== "memorized") return { index: i, phase: st === "learned" ? "recall" : "learn" };
+    }
+    return { index: 0, phase: "learn" };
   }
 
   // =========================================================================
@@ -162,7 +184,7 @@
     el.openingsList.innerHTML = "";
     OPENINGS.forEach((op) => {
       const total = op.variations.length;
-      const done = progressCount(op);
+      const done = memorizedCount(op);
       const pct = Math.round((done / total) * 100);
       const cta = done === 0 ? "Empezar curso"
         : done >= total ? "¡Curso completado! Repasar"
@@ -190,20 +212,22 @@
   // Empieza (o continúa) el curso de una apertura por la primera variación
   // pendiente. El usuario no tiene que elegir nada más.
   function startCourse(op) {
-    startLesson(op, firstPending(op));
+    const { index, phase } = firstPending(op);
+    startLesson(op, index, phase);
   }
 
   // Índice opcional: hoja con todas las variaciones (para saltar a una).
   function openVariations(op) {
-    const done = completedIds(op.id);
+    const m = statusMap(op.id);
     el.variationsTitle.textContent = `${op.emoji} ${op.name}`;
     el.variationsList.innerHTML = "";
     op.variations.forEach((v, idx) => {
-      const isDone = done.has(v.id);
+      const st = m[v.id] || "";
+      const mark = st === "memorized" ? "✓" : st === "learned" ? "½" : (idx + 1);
       const row = document.createElement("button");
-      row.className = "variation-row" + (isDone ? " is-done" : "");
+      row.className = "variation-row" + (st === "memorized" ? " is-done" : "");
       row.innerHTML = `
-        <span class="variation-check">${isDone ? "✓" : (idx + 1)}</span>
+        <span class="variation-check">${mark}</span>
         <span class="variation-info">
           <span class="variation-name">${v.name}</span>
           <span class="variation-blurb">${v.blurb}</span>
@@ -211,7 +235,8 @@
         <span class="variation-meta">›</span>`;
       row.addEventListener("click", () => {
         el.variationsSheet.classList.remove("is-open");
-        startLesson(op, idx);
+        // Si ya está aprendida, salta directo a la fase de memoria.
+        startLesson(op, idx, st === "learned" ? "recall" : "learn");
       });
       el.variationsList.appendChild(row);
     });
@@ -234,20 +259,28 @@
   // =========================================================================
   // LECCIÓN
   // =========================================================================
-  function startLesson(opening, index) {
+  function startLesson(opening, index, phase) {
     index = Math.max(0, Math.min(index, opening.variations.length - 1));
+    phase = phase === "recall" ? "recall" : "learn";
     state.opening = opening;
     state.courseIndex = index;
     state.variation = opening.variations[index];
+    state.phase = phase;
+    state.guided = phase === "learn";   // con ayuda al aprender, sin ayuda al memorizar
+    state.usedHelp = false;
     state.board = initialBoard();
     state.step = 0;
     state.selected = null;
+    state.selectable = null;
+    state.hint = null;
     state.lastMove = null;
     state.locked = false;
     state.flipped = opening.color === "black";
     state.aiHistory = [];
+    el.btnMode.textContent = state.guided ? "Guiado" : "Memoria";
+    const tag = phase === "learn" ? "🟢 Aprender" : "🧠 De memoria";
     el.lessonName.textContent =
-      `Lección ${index + 1}/${opening.variations.length} · ${state.variation.name}`;
+      `${tag} · ${index + 1}/${opening.variations.length} · ${state.variation.name}`;
     showScreen("lesson");
     buildBoardGrid();
     renderBoard();
@@ -389,7 +422,9 @@
 
     const move = ms[state.step];
     updateHud();
-    setCoach(move.text, "talk");
+    // En fase «de memoria» no revelamos la jugada del alumno: solo le animamos.
+    const coachText = (move.by === "user" && !state.guided) ? pick(RECALL_PROMPTS) : move.text;
+    setCoach(coachText, "talk");
 
     if (move.by === "engine") {
       state.locked = true;
@@ -438,10 +473,11 @@
   function showHint() {
     const move = moves()[state.step];
     if (!move || move.by !== "user" || state.locked) return;
+    state.usedHelp = true; // en fase de memoria, pedir pista cuenta como ayuda
     const { from, to } = moveSquares(move);
     state.hint = { from, to };
     paintSquares();
-    setCoach(move.hint || "Mueve la pieza resaltada a la casilla iluminada.", "think");
+    setCoach(move.hint || "Movemos la pieza resaltada a la casilla iluminada.", "think");
   }
 
   function onSquareTap(sq) {
@@ -486,6 +522,7 @@
   }
 
   function wrongMove() {
+    state.usedHelp = true; // un fallo rompe el "sin ayuda" de la fase de memoria
     state.selected = null;
     if (state.guided) highlightFrom(moves()[state.step]); else paintSquares();
     setCoach(pick(NUDGE), "think");
@@ -497,24 +534,41 @@
   function finishLesson() {
     el.progressFill.style.width = "100%";
     state.locked = true;
-    markCompleted(state.opening.id, state.variation.id);
 
-    const total = state.opening.variations.length;
-    const done = progressCount(state.opening);
-    const hasNext = state.courseIndex < total - 1;
+    const op = state.opening, v = state.variation;
+    const total = op.variations.length;
     const title = $("#complete-title");
     const nextBtn = $("#complete-next");
 
-    if (done >= total) {
-      title.textContent = "🏆 ¡Curso completado!";
+    if (state.phase === "learn") {
+      // Acabamos de aprenderla con ayuda → ahora a recuperarla de memoria.
+      setStatus(op.id, v.id, "learned");
+      title.textContent = "¡Aprendida con ayuda! 🙌";
       el.completeText.textContent =
-        `¡Has dominado las ${total} variaciones de ${state.opening.name}! Un trabajo enorme. 🎉`;
+        "Ahora la repetimos de memoria, sin ayuda. Recordar la jugada por ti mismo " +
+        "es lo que de verdad la fija en la cabeza (está demostrado 🧠).";
+      nextBtn.textContent = "Repetir de memoria ▶";
+      nextBtn.style.display = "block";
+      state.onNext = () => startLesson(op, state.courseIndex, "recall");
     } else {
-      title.textContent = "¡Variación completada!";
-      el.completeText.textContent =
-        `«${state.variation.name}» aprendida. Llevas ${done} de ${total} en ${state.opening.name}. ¡Sigue así! 🚀`;
+      // Fase de memoria superada → memorizada.
+      setStatus(op.id, v.id, "memorized");
+      const done = memorizedCount(op);
+      const clean = !state.usedHelp;
+      const hasNext = state.courseIndex < total - 1;
+      if (done >= total) {
+        title.textContent = "🏆 ¡Curso completado!";
+        el.completeText.textContent =
+          `¡Hemos memorizado las ${total} variaciones de ${op.name}! Un trabajo enorme. 🎉`;
+      } else {
+        title.textContent = clean ? "¡Memorizada, sin un fallo! ✅" : "¡Memorizada! ✅";
+        el.completeText.textContent =
+          `Llevamos ${done} de ${total} memorizadas en ${op.name}. ¡Seguimos! 🚀`;
+      }
+      nextBtn.textContent = "Siguiente variación ▶";
+      nextBtn.style.display = hasNext ? "block" : "none";
+      state.onNext = () => startLesson(op, state.courseIndex + 1, "learn");
     }
-    nextBtn.style.display = hasNext ? "block" : "none";
     el.completeOverlay.classList.add("is-open");
   }
 
@@ -623,15 +677,16 @@
 
     $("#btn-mode").addEventListener("click", () => {
       state.guided = !state.guided;
-      el.btnMode.textContent = state.guided ? "Guiado" : "Examen";
+      if (state.guided && state.phase === "recall") state.usedHelp = true; // activar ayuda en memoria cuenta
+      el.btnMode.textContent = state.guided ? "Guiado" : "Memoria";
       el.btnMode.setAttribute("aria-pressed", String(!state.guided));
       clearHints();
       const m = moves()[state.step];
       if (state.guided && m && m.by === "user") highlightFrom(m);
       setCoach(
         state.guided
-          ? "Modo Guiado: te marco la pieza a mover. ¡Tranquilo, aquí aprendemos juntos!"
-          : "Modo Examen: ahora sin pistas automáticas. Si te atascas, el botón 💡 sigue ahí.",
+          ? "Modo Guiado: te marcamos la pieza a mover. Aquí aprendemos juntos."
+          : "Modo Memoria: sin pistas automáticas. Si te atascas, el botón 💡 sigue ahí.",
         "talk"
       );
     });
@@ -652,7 +707,7 @@
     });
     $("#set-restart").addEventListener("click", () => {
       el.settingsSheet.classList.remove("is-open");
-      startLesson(state.opening, state.courseIndex);
+      startLesson(state.opening, state.courseIndex, state.phase);
     });
     $("#set-index").addEventListener("click", () => {
       el.settingsSheet.classList.remove("is-open");
@@ -666,11 +721,11 @@
     // Felicitación final
     $("#complete-next").addEventListener("click", () => {
       el.completeOverlay.classList.remove("is-open");
-      startLesson(state.opening, state.courseIndex + 1);
+      if (state.onNext) state.onNext();
     });
     $("#complete-replay").addEventListener("click", () => {
       el.completeOverlay.classList.remove("is-open");
-      startLesson(state.opening, state.courseIndex);
+      startLesson(state.opening, state.courseIndex, state.phase);
     });
     $("#complete-home").addEventListener("click", () => {
       el.completeOverlay.classList.remove("is-open");
