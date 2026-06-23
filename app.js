@@ -200,6 +200,7 @@
         <span class="opening-emoji">${op.emoji}</span>
         <span class="opening-info">
           <span class="opening-name">${op.name}</span>
+          ${op.tag ? `<span class="opening-tag">⭐ ${op.tag}</span>` : ""}
           <span class="opening-blurb">${op.blurb}</span>
           <span class="course-bar"><span class="course-bar-fill" style="width:${pct}%"></span></span>
           <span class="opening-meta">
