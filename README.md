@@ -13,6 +13,14 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
   **todas sus variaciones**, con el mínimo de decisiones: un solo botón
   «Siguiente». El progreso se guarda en tu dispositivo y cada curso muestra
   cuántas variaciones llevas (p. ej. 12/33).
+- **Memorización por práctica de recuperación.** Cada variación se entrena en
+  dos fases: **Aprender** (con ayuda y explicaciones) y, justo después,
+  **De memoria** (sin ayuda; el entrenador no revela la jugada). Solo cuenta
+  como «memorizada» cuando la repites sin ayuda. Es el *testing effect*, de los
+  métodos mejor respaldados por la ciencia para fijar conocimiento.
+- **Tono de entrenador.** La app habla en primera persona del plural
+  («jugamos…», «buscamos…»), explicando la idea de cada jugada y terminando con
+  el movimiento.
 - **Tablero con piezas SVG y movimientos animados.** Piezas vectoriales del
   set *cburnett* (el de Lichess), nítidas y consistentes, que **se deslizan**
   suavemente al moverse en lugar de aparecer de golpe.
