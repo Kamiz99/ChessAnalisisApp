@@ -12,7 +12,7 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
 - **Cursos por apertura.** Eliges una apertura y la app te guía en orden por
   **todas sus variaciones**, con el mínimo de decisiones: un solo botón
   «Siguiente». El progreso se guarda en tu dispositivo y cada curso muestra
-  cuántas variaciones llevas (p. ej. 12/33).
+  cuántas variaciones llevas (p. ej. 4/7).
 - **Memorización por práctica de recuperación.** Cada variación se entrena en
   fases que la app encadena sola: **Aprender** (con ayuda y explicaciones) y
   luego **De memoria ×2** (dos repeticiones sin ayuda; el entrenador no revela
@@ -26,10 +26,9 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
   suavemente al moverse en lugar de aparecer de golpe.
 - **Aprendizaje guiado jugada a jugada.** El rival mueve solo y tú vas
   encontrando la jugada correcta de la línea.
-- **≥30 variaciones reales por apertura.** Combinan líneas explicadas a mano
-  con variaciones del dataset ECO de
-  [lichess-org/chess-openings](https://github.com/lichess-org/chess-openings)
-  (198 líneas en total, generadas y validadas automáticamente).
+- **Repertorio coherente por apertura.** Tus jugadas son fijas y cada
+  variación responde a una jugada concreta del rival con una única réplica
+  (sin contradicciones). 34 líneas en total, validadas automáticamente.
 - **Entrenador cordial.** Mensajes humanos que explican *por qué* de cada
   jugada, con ánimos cuando aciertas y pistas suaves cuando fallas.
 - **💬 Entrenador con IA real (opcional).** Pulsa 💬 y pregúntale libremente
@@ -43,19 +42,20 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
 - **PWA instalable y offline.** «Añadir a la pantalla de inicio» en el móvil;
   funciona sin conexión (salvo el entrenador IA, que necesita internet).
 
-## ♟ Cursos incluidos (6 aperturas · 33 variaciones cada uno)
+## ♟ Cursos incluidos (6 aperturas · repertorio coherente)
 
 | Curso | Bando | Variaciones |
 |---|---|---|
-| Sistema Londres | Blancas | 33 |
-| Apertura Italiana | Blancas | 33 |
-| Ruy López | Blancas | 33 |
-| Defensa Siciliana | Blancas | 33 |
-| Gambito de Dama | Blancas | 33 |
-| Defensa India de Rey | Negras | 33 |
+| Sistema Londres | Blancas | 7 |
+| Apertura Italiana | Blancas | 5 |
+| Ruy López | Blancas | 5 |
+| Defensa Siciliana | Blancas | 6 |
+| Gambito de Dama | Blancas | 6 |
+| Defensa India de Rey | Negras | 5 |
 
-Las 3 primeras variaciones de cada curso están explicadas a mano con texto
-detallado; el resto provienen del dataset ECO real de Lichess.
+Cada curso es un repertorio: tus jugadas fijas y una respuesta concreta para
+cada réplica del rival. El número de líneas es el de respuestas distintas que
+puede plantear el rival (sin variaciones que se contradigan entre sí).
 
 ## 🤖 Entrenador con IA
 
@@ -109,23 +109,29 @@ distribuido por [Lichess](https://github.com/lichess-org/lila) bajo licencia
 **GPLv2+**. Las aperturas provienen del dataset
 [lichess-org/chess-openings](https://github.com/lichess-org/chess-openings).
 
-## 🔧 Datos y generación
+## 🔧 Datos y generación (repertorio coherente)
 
-`openings.js` está **generado** por `tools/gen.js`, que:
-1. conserva las variaciones curadas a mano (texto rico), y
-2. descarga el dataset ECO de Lichess (`a..e.tsv`) y convierte su PGN
-   (notación SAN) al formato del motor con un mini-motor de ajedrez propio
-   (genera movimientos legales para resolver ambigüedades de SAN).
+Cada apertura es un **repertorio coherente**: tus jugadas son fijas (tu
+"sistema") y las variaciones se diferencian **solo en la respuesta del rival**,
+con **una** réplica nuestra por cada una. No hay dos variaciones que, en la
+misma posición, te hagan jugar cosas distintas.
 
-Para regenerarlo (necesita los TSV en `/tmp/`):
+`openings.js` está **generado** desde:
+- `tools/repertoire.js` — el repertorio escrito en notación SAN (las líneas).
+- `tools/chess.js` — mini-motor que convierte SAN → jugadas `{from,to}` con
+  generación legal de movimientos.
+- `tools/buildrep.js` — construye `openings.js`, genera los textos del
+  entrenador y **valida que no haya contradicciones** (misma posición ⇒ misma
+  jugada nuestra). Aborta si encuentra alguna.
+
+Para regenerarlo:
 ```bash
-node tools/gen.js > openings.js
+node tools/buildrep.js > openings.js
 ```
 
-> Nota: la API del explorador de aperturas de Lichess
-> (`explorer.lichess.ovh`, con frecuencias reales de partidas) está bloqueada
-> por la política de red de este entorno. Si la habilitas, se podría filtrar
-> por frecuencia de aparición (p. ej. >65%) en lugar de por nombre ECO.
+Para añadir una respuesta a una jugada del rival, edita `tools/repertoire.js`
+y vuelve a generar; si introduces una contradicción, el constructor te dice
+exactamente en qué posición y no escribe el archivo.
 
 ## 💡 Ideas para más adelante
 
