@@ -14,10 +14,10 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
   «Siguiente». El progreso se guarda en tu dispositivo y cada curso muestra
   cuántas variaciones llevas (p. ej. 12/33).
 - **Memorización por práctica de recuperación.** Cada variación se entrena en
-  dos fases: **Aprender** (con ayuda y explicaciones) y, justo después,
-  **De memoria** (sin ayuda; el entrenador no revela la jugada). Solo cuenta
-  como «memorizada» cuando la repites sin ayuda. Es el *testing effect*, de los
-  métodos mejor respaldados por la ciencia para fijar conocimiento.
+  fases que la app encadena sola: **Aprender** (con ayuda y explicaciones) y
+  luego **De memoria ×2** (dos repeticiones sin ayuda; el entrenador no revela
+  la jugada). Solo cuenta como «memorizada» tras repetirla dos veces sin ayuda.
+  Es el *testing effect*, de los métodos mejor respaldados por la ciencia.
 - **Tono de entrenador.** La app habla en primera persona del plural
   («jugamos…», «buscamos…»), explicando la idea de cada jugada y terminando con
   el movimiento.
