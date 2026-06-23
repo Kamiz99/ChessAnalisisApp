@@ -170,7 +170,7 @@ html, body {
   overflow: hidden;
   box-shadow: 0 8px 26px rgba(0,0,0,0.45);
   user-select: none;
-  touch-action: manipulation;
+  touch-action: none;   /* permite arrastrar piezas sin que la página haga scroll */
 }
 .sq {
   position: relative;
@@ -213,6 +213,12 @@ html, body {
 .pc.captured { opacity: 0; transition: opacity .2s ease; }
 .pc.sel { filter: drop-shadow(0 2px 7px rgba(138,92,255,.95)); }
 .pc.movehint { animation: pcpulse 1.3s ease-in-out infinite; }
+/* Pieza mientras se arrastra con el dedo: sigue al puntero, sin transición */
+.pc.dragging {
+  transition: none;
+  z-index: 20;
+  filter: drop-shadow(0 7px 11px rgba(0,0,0,.55));
+}
 
 @keyframes pcpulse {
   0%, 100% { filter: drop-shadow(0 0 0 rgba(138,92,255,0)); }

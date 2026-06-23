@@ -294,15 +294,25 @@
     for (let i = 0; i < 64; i++) {
       const cell = document.createElement("div");
       cell.className = "sq";
-      cell.addEventListener("click", () => {
-        const sq = cell.dataset.square;
-        if (sq) onSquareTap(sq);
-      });
       el.board.appendChild(cell);
     }
     el.piecesLayer = document.createElement("div");
     el.piecesLayer.className = "pieces-layer";
     el.board.appendChild(el.piecesLayer);
+    // La entrada (toque y arrastre) se gestiona a nivel de tablero en bindEvents.
+  }
+
+  // Casilla bajo un punto de pantalla (para arrastrar/tocar).
+  function squareFromPoint(clientX, clientY) {
+    const rect = el.board.getBoundingClientRect();
+    const x = (clientX - rect.left) / rect.width;
+    const y = (clientY - rect.top) / rect.height;
+    if (x < 0 || x > 1 || y < 0 || y > 1) return null;
+    const col = Math.max(0, Math.min(7, Math.floor(x * 8)));
+    const row = Math.max(0, Math.min(7, Math.floor(y * 8)));
+    const fi = state.flipped ? 7 - col : col;
+    const ri = state.flipped ? row : 7 - row;
+    return FILES[fi] + (ri + 1);
   }
 
   // Columna/fila visual (0-7) de una casilla según la orientación del tablero.
@@ -508,16 +518,91 @@
     }
 
     if (sq === expectedTo) {
-      flashPraise();
-      animateMove(move);   // desliza la pieza
-      state.step++;
-      state.locked = true;
-      setTimeout(() => {
-        state.locked = false;
-        runStep();
-      }, SLIDE_MS + 320);
+      commitUserMove(move);
     } else {
       wrongMove();
+    }
+  }
+
+  // Confirma la jugada correcta del alumno (toque o arrastre): anima y avanza.
+  function commitUserMove(move) {
+    flashPraise();
+    animateMove(move);
+    state.step++;
+    state.locked = true;
+    setTimeout(() => {
+      state.locked = false;
+      runStep();
+    }, SLIDE_MS + 320);
+  }
+
+  // ---- Arrastre de piezas con el dedo (Pointer Events) --------------------
+  let drag = null; // { from, node, startX, startY, moved, downSq }
+
+  function onPointerDown(e) {
+    if (state.locked) return;
+    const move = moves()[state.step];
+    if (!move || move.by !== "user") return;
+    const sq = squareFromPoint(e.clientX, e.clientY);
+    if (!sq) return;
+    drag = { from: sq, downSq: sq, node: null, startX: e.clientX, startY: e.clientY, moved: false };
+    const piece = state.board[sq];
+    // Solo se puede arrastrar una pieza propia (del color del alumno).
+    if (piece && piece.color === state.opening.color) {
+      drag.node = state.pieceNodes[piece.id] || null;
+      try { el.board.setPointerCapture(e.pointerId); } catch (err) {}
+    }
+  }
+
+  function positionDragNode(clientX, clientY) {
+    const rect = el.board.getBoundingClientRect();
+    const size = rect.width / 8;
+    const px = clientX - rect.left - size / 2;
+    const py = clientY - rect.top - size / 2;
+    drag.node.style.transform = `translate(${px}px, ${py}px) scale(1.12)`;
+  }
+
+  function onPointerMove(e) {
+    if (!drag || !drag.node) return;
+    if (!drag.moved) {
+      const dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
+      if (Math.hypot(dx, dy) < 6) return; // umbral para distinguir toque de arrastre
+      drag.moved = true;
+      drag.node.classList.add("dragging");
+      // selecciona visualmente la pieza y, si guiado, marca el destino
+      const m = moves()[state.step];
+      const exp = moveSquares(m);
+      state.selected = drag.from;
+      state.selectable = null;
+      state.hint = (state.guided && drag.from === exp.from) ? { to: exp.to } : null;
+      paintSquares();
+    }
+    positionDragNode(e.clientX, e.clientY);
+    e.preventDefault();
+  }
+
+  function onPointerUp(e) {
+    if (!drag) return;
+    const d = drag; drag = null;
+    try { el.board.releasePointerCapture(e.pointerId); } catch (err) {}
+
+    if (!d.moved || !d.node) {
+      // Fue un toque: comportamiento de toque sobre la casilla pulsada.
+      onSquareTap(d.downSq);
+      return;
+    }
+
+    // Fue un arrastre: soltar sobre la casilla destino.
+    const to = squareFromPoint(e.clientX, e.clientY) || d.from;
+    const move = moves()[state.step];
+    const exp = move ? moveSquares(move) : {};
+    d.node.classList.remove("dragging");
+    if (move && d.from === exp.from && to === exp.to) {
+      commitUserMove(move);            // correcto: animateMove coloca la pieza
+    } else {
+      setPiecePos(d.node, d.from);     // vuelve a su sitio
+      if (to !== d.from) wrongMove();  // soltó en otra casilla incorrecta
+      else { state.selected = null; if (state.guided && move) highlightFrom(move); else paintSquares(); }
     }
   }
 
@@ -531,45 +616,68 @@
   }
   function flashPraise() { setCoach(pick(PRAISE), "happy"); }
 
+  // Overlay breve que se cierra solo y continúa (la app lleva las riendas:
+  // el usuario no tiene que decidir si pasa de fase o de variación).
+  let flashTimer = null;
+  function flashThenAdvance(title, text, cb) {
+    $("#complete-title").textContent = title;
+    el.completeText.textContent = text;
+    $("#complete-next").style.display = "none";
+    const actions = document.querySelector(".overlay-actions");
+    if (actions) actions.style.display = "none";
+    el.completeOverlay.classList.add("is-open");
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => {
+      el.completeOverlay.classList.remove("is-open");
+      cb();
+    }, 1700);
+  }
+
   function finishLesson() {
     el.progressFill.style.width = "100%";
     state.locked = true;
 
     const op = state.opening, v = state.variation;
     const total = op.variations.length;
-    const title = $("#complete-title");
-    const nextBtn = $("#complete-next");
 
     if (state.phase === "learn") {
-      // Acabamos de aprenderla con ayuda → ahora a recuperarla de memoria.
+      // Aprendida con ayuda → la app pasa SOLA a la fase de memoria.
       setStatus(op.id, v.id, "learned");
-      title.textContent = "¡Aprendida con ayuda! 🙌";
-      el.completeText.textContent =
-        "Ahora la repetimos de memoria, sin ayuda. Recordar la jugada por ti mismo " +
-        "es lo que de verdad la fija en la cabeza (está demostrado 🧠).";
-      nextBtn.textContent = "Repetir de memoria ▶";
-      nextBtn.style.display = "block";
-      state.onNext = () => startLesson(op, state.courseIndex, "recall");
-    } else {
-      // Fase de memoria superada → memorizada.
-      setStatus(op.id, v.id, "memorized");
-      const done = memorizedCount(op);
-      const clean = !state.usedHelp;
-      const hasNext = state.courseIndex < total - 1;
-      if (done >= total) {
-        title.textContent = "🏆 ¡Curso completado!";
-        el.completeText.textContent =
-          `¡Hemos memorizado las ${total} variaciones de ${op.name}! Un trabajo enorme. 🎉`;
-      } else {
-        title.textContent = clean ? "¡Memorizada, sin un fallo! ✅" : "¡Memorizada! ✅";
-        el.completeText.textContent =
-          `Llevamos ${done} de ${total} memorizadas en ${op.name}. ¡Seguimos! 🚀`;
-      }
-      nextBtn.textContent = "Siguiente variación ▶";
-      nextBtn.style.display = hasNext ? "block" : "none";
-      state.onNext = () => startLesson(op, state.courseIndex + 1, "learn");
+      flashThenAdvance(
+        "¡Aprendida! 🙌",
+        "Ahora la repetimos de memoria, sin ayuda: recordarla por ti mismo es lo que la fija de verdad 🧠.",
+        () => startLesson(op, state.courseIndex, "recall")
+      );
+      return;
     }
-    el.completeOverlay.classList.add("is-open");
+
+    // Fase de memoria superada → memorizada.
+    setStatus(op.id, v.id, "memorized");
+    const done = memorizedCount(op);
+
+    if (done >= total) {
+      // Fin del curso: único punto donde se muestran botones.
+      $("#complete-title").textContent = "🏆 ¡Curso completado!";
+      el.completeText.textContent =
+        `¡Hemos memorizado las ${total} variaciones de ${op.name}! Un trabajo enorme. 🎉`;
+      const nextBtn = $("#complete-next");
+      nextBtn.textContent = "Volver al inicio";
+      nextBtn.style.display = "block";
+      const actions = document.querySelector(".overlay-actions");
+      if (actions) actions.style.display = "flex";
+      state.onNext = () => goHome();
+      el.completeOverlay.classList.add("is-open");
+      return;
+    }
+
+    // Sigue habiendo variaciones pendientes → la app avanza SOLA a la siguiente.
+    const clean = !state.usedHelp;
+    const next = firstPending(op);
+    flashThenAdvance(
+      clean ? "¡Memorizada, sin un fallo! ✅" : "¡Memorizada! ✅",
+      `Llevamos ${done} de ${total} en ${op.name}. Seguimos con la siguiente.`,
+      () => startLesson(op, next.index, next.phase)
+    );
   }
 
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -674,6 +782,12 @@
     $("#btn-back").addEventListener("click", goHome);
     $("#btn-hint").addEventListener("click", showHint);
     $("#btn-ai").addEventListener("click", openAi);
+
+    // Entrada del tablero: toque y arrastre con el dedo (Pointer Events).
+    el.board.addEventListener("pointerdown", onPointerDown);
+    el.board.addEventListener("pointermove", onPointerMove);
+    el.board.addEventListener("pointerup", onPointerUp);
+    el.board.addEventListener("pointercancel", onPointerUp);
 
     $("#btn-mode").addEventListener("click", () => {
       state.guided = !state.guided;
