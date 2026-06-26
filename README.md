@@ -59,14 +59,20 @@ puede plantear el rival (sin variaciones que se contradigan entre sí).
 
 ## 🤖 Entrenador con IA
 
-- En una lección, pulsa **💬** y, la primera vez, pega tu **API key de
-  Anthropic** (`sk-ant-...`). Consíguela en `console.anthropic.com`.
-- La clave se guarda en tu navegador y se usa para llamar a la API de Claude
-  directamente. **Aviso de seguridad:** úsala solo en tu dispositivo personal;
-  no publiques tu clave.
-- El entrenador conoce la apertura y la posición en la que estás, así que
-  puedes preguntarle cosas como *"¿por qué Bf4 y no Bg5?"* o *"¿qué plan tengo
-  ahora?"*.
+Pulsa **💬** en una lección. Dos formas de usarlo:
+
+1. **Gratis, sin clave (recomendada).** Un modelo **Llama** (de Meta) que corre
+   **dentro del navegador** con WebLLM: gratis, privado y offline tras la
+   primera descarga (~900 MB). Necesita un navegador con WebGPU (Chrome/Edge
+   actuales, Safari 18+).
+2. **Con tu propia clave** (se guarda solo en tu dispositivo). La app detecta el
+   proveedor por el formato de la clave:
+   - `sk-ant-…` → **Claude** (Anthropic)
+   - `AIza…` → **Google Gemini** (tiene nivel gratuito en aistudio.google.com)
+   - `sk-…` → **OpenAI** (GPT)
+
+El entrenador conoce la apertura y la posición en la que estás, así que puedes
+preguntarle *"¿por qué Bf4 y no Bg5?"* o *"¿qué plan tengo ahora?"*.
 
 ## 🚀 Cómo ejecutarla en tu teléfono
 

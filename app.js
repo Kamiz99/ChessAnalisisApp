@@ -51,7 +51,8 @@
     selectable: null,   // casilla a resaltar en turno guiado
     hint: null,         // {from?, to?} resaltado de pista
     aiHistory: [],      // conversación con el entrenador IA [{role, content}]
-    aiBusy: false
+    aiBusy: false,
+    aiStatus: ""        // texto de progreso (descarga del modelo local)
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -756,23 +757,23 @@
     refreshAiVisibility();
     renderChat();
     el.aiSheet.classList.add("is-open");
-    if (window.CoachAI.hasKey()) setTimeout(() => el.aiInput.focus(), 200);
+    if (window.CoachAI.hasAI()) setTimeout(() => el.aiInput.focus(), 200);
   }
 
   function refreshAiVisibility() {
-    const hasKey = window.CoachAI.hasKey();
-    el.aiSetup.style.display = hasKey ? "none" : "block";
-    el.aiChat.style.display = hasKey ? "flex" : "none";
-    el.aiForm.style.display = hasKey ? "flex" : "none";
+    const ready = window.CoachAI.hasAI();
+    el.aiSetup.style.display = ready ? "none" : "block";
+    el.aiChat.style.display = ready ? "flex" : "none";
+    el.aiForm.style.display = ready ? "flex" : "none";
   }
 
   function renderChat() {
     el.aiChat.innerHTML = "";
     addBubble("coach",
-      `¡Hola! 😊 Soy tu entrenador. Pregúntame lo que quieras sobre «${state.variation.name}» ` +
-      `de ${state.opening.name}: ideas, planes, por qué de cada jugada…`);
+      `¡Hola! 😊 Soy tu entrenador (${window.CoachAI.providerName()}). Pregúntame lo que quieras ` +
+      `sobre «${state.variation.name}» de ${state.opening.name}: ideas, planes, por qué de cada jugada…`);
     state.aiHistory.forEach((m) => addBubble(m.role === "user" ? "me" : "coach", m.content));
-    if (state.aiBusy) addBubble("coach", "…", true);
+    if (state.aiBusy) addBubble("coach", state.aiStatus || "…", true);
     el.aiChat.scrollTop = el.aiChat.scrollHeight;
   }
 
@@ -787,19 +788,23 @@
     if (state.aiBusy) return;
     state.aiHistory.push({ role: "user", content: text });
     state.aiBusy = true;
+    state.aiStatus = "";
     renderChat();
+    const onProgress = (msg) => { state.aiStatus = msg; renderChat(); };
     try {
-      const reply = await window.CoachAI.ask(state.aiHistory, aiContext());
+      const reply = await window.CoachAI.ask(state.aiHistory, aiContext(), onProgress);
       state.aiHistory.push({ role: "assistant", content: reply });
     } catch (err) {
       let msg;
-      if (err.message === "NO_KEY") msg = "Primero añade tu API key con el botón ⚙️ de arriba.";
-      else if (err.status === 401) msg = "La clave no es válida. Revísala con el botón ⚙️.";
+      if (err.message === "NO_KEY") msg = "Primero elige la IA con el botón ⚙️ de arriba.";
+      else if (err.code === "NO_WEBGPU") msg = "Tu navegador no soporta la IA local (WebGPU). Prueba Chrome/Edge actualizado, o usa una clave gratis de Gemini con ⚙️.";
+      else if (err.status === 401 || err.status === 403) msg = "La clave no es válida. Revísala con el botón ⚙️.";
       else if (err.status === 429) msg = "Vamos rápido 😅 Espera un momento y prueba otra vez.";
-      else msg = "Ups, no pude conectar: " + err.message;
+      else msg = "Ups, no pude responder: " + err.message;
       state.aiHistory.push({ role: "assistant", content: msg });
     } finally {
       state.aiBusy = false;
+      state.aiStatus = "";
       renderChat();
     }
   }
@@ -880,13 +885,29 @@
       el.aiSetup.style.display = el.aiSetup.style.display === "none" ? "block" : "none";
       el.aiKeyInput.value = window.CoachAI.getKey();
     });
+    $("#ai-local-btn").addEventListener("click", () => {
+      if (!window.CoachAI.webgpuOK()) {
+        const note = document.createElement("p");
+        note.className = "ai-note";
+        note.style.color = "#ff8a8a";
+        note.textContent = "Tu navegador no soporta la IA local (WebGPU). Prueba con Chrome/Edge actualizado, o usa una clave gratis de Gemini (abajo).";
+        el.aiSetup.appendChild(note);
+        return;
+      }
+      window.CoachAI.setMode("local");
+      refreshAiVisibility();
+      renderChat();
+      addBubble("coach", "IA gratis activada 🆓 La primera respuesta tardará un poco mientras se descarga el modelo (~900 MB).");
+      el.aiInput.focus();
+    });
     $("#ai-key-save").addEventListener("click", () => {
       const k = el.aiKeyInput.value.trim();
+      if (!k) return;
       window.CoachAI.setKey(k);
       el.aiKeyInput.value = "";
       refreshAiVisibility();
       renderChat();
-      if (window.CoachAI.hasKey()) el.aiInput.focus();
+      if (window.CoachAI.hasAI()) el.aiInput.focus();
     });
     el.aiForm.addEventListener("submit", (e) => {
       e.preventDefault();

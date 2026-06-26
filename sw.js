@@ -1,5 +1,5 @@
 /* Service worker mínimo para uso offline e instalación como app. */
-const CACHE = "aperturas-v9";
+const CACHE = "aperturas-v10";
 const PIECES = ["wK","wQ","wR","wB","wN","wP","bK","bQ","bR","bB","bN","bP"]
   .map((p) => "assets/pieces/" + p + ".svg");
 const ASSETS = [
@@ -29,6 +29,9 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
+  // Solo gestionamos peticiones de la propia app. Las externas (CDN del modelo
+  // Llama, APIs de IA) van directas a la red, sin pasar por la caché.
+  if (new URL(e.request.url).origin !== self.location.origin) return;
   e.respondWith(
     caches.match(e.request).then((hit) => hit || fetch(e.request))
   );
