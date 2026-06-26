@@ -76,12 +76,9 @@
     el.variationsList = $("#variations-list");
     el.completeOverlay = $("#complete-overlay");
     el.completeText = $("#complete-text");
-    // IA
-    el.aiSheet = $("#ai-sheet");
-    el.aiSetup = $("#ai-setup");
-    el.aiChat = $("#ai-chat");
-    el.aiForm = $("#ai-form");
-    el.aiInput = $("#ai-input");
+    // IA (entrenador en la burbuja)
+    el.coachAskInput = $("#coach-ask-input");
+    el.aiKeySheet = $("#aikey-sheet");
     el.aiKeyInput = $("#ai-key-input");
   }
 
@@ -753,59 +750,71 @@
     };
   }
 
-  function openAi() {
-    refreshAiVisibility();
-    renderChat();
-    el.aiSheet.classList.add("is-open");
-    if (window.CoachAI.hasAI()) setTimeout(() => el.aiInput.focus(), 200);
+  // Entrenador INTEGRADO (sin descargar ni configurar nada): responde las
+  // preguntas comunes con el conocimiento ya incluido (el porqué y el plan).
+  function norm(s) {
+    return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+  function localAnswer(q) {
+    const t = norm(q);
+    const ms = moves();
+    const relMove = ms[state.step] || ms[state.step - 1];
+    const plan = `El plan de esta línea («${state.variation.name}») es: ${state.variation.blurb}`;
+
+    // ¿Por qué / idea / plan?
+    if (/(por ?que|para ?que|\bidea\b|\bplan\b|sentido|objetivo)/.test(t)) {
+      const why = relMove && relMove.text ? relMove.text.replace(/^Entramos en .*?\. /, "") : "";
+      return (why ? why + " " : "") + plan + ".";
+    }
+    // ¿Qué juego ahora / cuál es la jugada?
+    if (/(que (juego|hago|toca|sigue)|cual.*(jugada|movimiento)|siguiente jugada|ahora que)/.test(t)) {
+      const next = ms[state.step];
+      if (!next) return "Hemos llegado al final de la línea. ¡Bien hecho!";
+      if (next.by !== "user") return "Le toca al rival; espera su jugada y seguimos.";
+      if (!state.guided) return "Estás repasando de memoria 😉 Intenta recordar la jugada; si te atascas, pulsa 💡 Pista.";
+      return next.hint || next.text;
+    }
+    // ¿Y si el rival juega otra cosa?
+    if (/(y si|que pasa si|si el rival|si juega|otra (jugada|respuesta|cosa)|responde distinto|diferente)/.test(t)) {
+      return `Esta variación («${state.variation.name}») es nuestra respuesta concreta a esa jugada del rival. ` +
+        "Si el rival juega otra cosa, lo cubren las demás variaciones del curso (⚙️ → Ver todas las variaciones).";
+    }
+    // ¿Qué apertura es?
+    if (/(que apertura|como se llama|nombre de)/.test(t)) {
+      return `Estamos en ${state.opening.name} — variante «${state.variation.name}». ${plan}.`;
+    }
+    return null;
   }
 
-  function refreshAiVisibility() {
-    const ready = window.CoachAI.hasAI();
-    el.aiSetup.style.display = ready ? "none" : "block";
-    el.aiChat.style.display = ready ? "flex" : "none";
-    el.aiForm.style.display = ready ? "flex" : "none";
-  }
-
-  function renderChat() {
-    el.aiChat.innerHTML = "";
-    addBubble("coach",
-      `¡Hola! 😊 Soy tu entrenador (${window.CoachAI.providerName()}). Pregúntame lo que quieras ` +
-      `sobre «${state.variation.name}» de ${state.opening.name}: ideas, planes, por qué de cada jugada…`);
-    state.aiHistory.forEach((m) => addBubble(m.role === "user" ? "me" : "coach", m.content));
-    if (state.aiBusy) addBubble("coach", state.aiStatus || "…", true);
-    el.aiChat.scrollTop = el.aiChat.scrollHeight;
-  }
-
-  function addBubble(who, text, typing) {
-    const b = document.createElement("div");
-    b.className = "bubble bubble-" + who + (typing ? " typing" : "");
-    b.textContent = text;
-    el.aiChat.appendChild(b);
-  }
-
-  async function sendAi(text) {
+  // El alumno le pregunta al entrenador; la respuesta sale EN LA MISMA burbuja.
+  async function askCoach(text) {
     if (state.aiBusy) return;
-    state.aiHistory.push({ role: "user", content: text });
+    // 1) Respuesta integrada (instantánea, sin descargar ni configurar nada).
+    const built = localAnswer(text);
+    if (built) { setCoach(built, "talk"); return; }
+    // 2) Si la pregunta es libre y NO hay IA configurada, no obligamos a nada.
+    if (!window.CoachAI.hasAI()) {
+      setCoach("Te explico cada jugada y su plan automáticamente 🙂. Para preguntas libres puedo usar una IA opcional: actívala en ⚙️ → Entrenador IA.", "talk");
+      return;
+    }
+    // 3) Hay IA configurada (local o con clave): la usamos.
     state.aiBusy = true;
-    state.aiStatus = "";
-    renderChat();
-    const onProgress = (msg) => { state.aiStatus = msg; renderChat(); };
+    state.aiHistory.push({ role: "user", content: text });
+    setCoach("Pensando…", "think");
+    const onProgress = (msg) => setCoach(msg || "Descargando la IA (solo la primera vez)…", "think");
     try {
       const reply = await window.CoachAI.ask(state.aiHistory, aiContext(), onProgress);
       state.aiHistory.push({ role: "assistant", content: reply });
+      setCoach(reply, "talk");
     } catch (err) {
       let msg;
-      if (err.message === "NO_KEY") msg = "Primero elige la IA con el botón ⚙️ de arriba.";
-      else if (err.code === "NO_WEBGPU") msg = "Tu navegador no soporta la IA local (WebGPU). Prueba Chrome/Edge actualizado, o usa una clave gratis de Gemini con ⚙️.";
-      else if (err.status === 401 || err.status === 403) msg = "La clave no es válida. Revísala con el botón ⚙️.";
+      if (err.code === "NO_WEBGPU") msg = "Tu navegador no soporta la IA local. Añade una clave gratis de Gemini en ⚙️ → Entrenador IA.";
+      else if (err.status === 401 || err.status === 403) msg = "La clave no es válida. Revísala en ⚙️ → Entrenador IA.";
       else if (err.status === 429) msg = "Vamos rápido 😅 Espera un momento y prueba otra vez.";
       else msg = "Ups, no pude responder: " + err.message;
-      state.aiHistory.push({ role: "assistant", content: msg });
+      setCoach(msg, "think");
     } finally {
       state.aiBusy = false;
-      state.aiStatus = "";
-      renderChat();
     }
   }
 
@@ -815,7 +824,16 @@
   function bindEvents() {
     $("#btn-back").addEventListener("click", goHome);
     $("#btn-hint").addEventListener("click", showHint);
-    $("#btn-ai").addEventListener("click", openAi);
+
+    // Preguntar al entrenador desde la misma burbuja.
+    $("#coach-ask").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const t = el.coachAskInput.value.trim();
+      if (!t) return;
+      el.coachAskInput.value = "";
+      el.coachAskInput.blur();
+      askCoach(t);
+    });
 
     // Entrada del tablero: toque y arrastre con el dedo (Pointer Events).
     el.board.addEventListener("pointerdown", onPointerDown);
@@ -880,41 +898,30 @@
       goHome();
     });
 
-    // Entrenador IA
-    $("#ai-config-btn").addEventListener("click", () => {
-      el.aiSetup.style.display = el.aiSetup.style.display === "none" ? "block" : "none";
+    // Entrenador IA (avanzado): clave opcional desde Ajustes.
+    $("#set-aikey").addEventListener("click", () => {
+      el.settingsSheet.classList.remove("is-open");
       el.aiKeyInput.value = window.CoachAI.getKey();
-    });
-    $("#ai-local-btn").addEventListener("click", () => {
-      if (!window.CoachAI.webgpuOK()) {
-        const note = document.createElement("p");
-        note.className = "ai-note";
-        note.style.color = "#ff8a8a";
-        note.textContent = "Tu navegador no soporta la IA local (WebGPU). Prueba con Chrome/Edge actualizado, o usa una clave gratis de Gemini (abajo).";
-        el.aiSetup.appendChild(note);
-        return;
-      }
-      window.CoachAI.setMode("local");
-      refreshAiVisibility();
-      renderChat();
-      addBubble("coach", "IA gratis activada 🆓 La primera respuesta tardará un poco mientras se descarga el modelo (~900 MB).");
-      el.aiInput.focus();
+      el.aiKeySheet.classList.add("is-open");
     });
     $("#ai-key-save").addEventListener("click", () => {
       const k = el.aiKeyInput.value.trim();
       if (!k) return;
       window.CoachAI.setKey(k);
       el.aiKeyInput.value = "";
-      refreshAiVisibility();
-      renderChat();
-      if (window.CoachAI.hasAI()) el.aiInput.focus();
+      el.aiKeySheet.classList.remove("is-open");
+      setCoach(`Listo, ahora el entrenador usa ${window.CoachAI.providerName()}. Pregúntame lo que quieras.`, "talk");
     });
-    el.aiForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const text = el.aiInput.value.trim();
-      if (!text) return;
-      el.aiInput.value = "";
-      sendAi(text);
+    $("#ai-local-btn").addEventListener("click", () => {
+      if (!window.CoachAI.webgpuOK()) {
+        setCoach("Tu navegador no soporta la IA local (WebGPU). Prueba con Chrome/Edge actualizado, o usa una clave gratis de Gemini.", "think");
+        el.aiKeySheet.classList.remove("is-open");
+        return;
+      }
+      window.CoachAI.setKey("");
+      window.CoachAI.setMode("local");
+      el.aiKeySheet.classList.remove("is-open");
+      setCoach("IA gratis activada 🆓 Pregúntame lo que quieras; la primera respuesta tardará mientras se descarga el modelo.", "talk");
     });
   }
 
