@@ -374,8 +374,10 @@ html, body {
   background: var(--bg); color: var(--text); font-size: 14px; margin-bottom: 10px;
 }
 .ai-key-input:focus { outline: none; border-color: var(--accent); }
-.ai-setup .btn-primary { width: 100%; padding: 12px; border-radius: 10px; }
-.ai-note { font-size: 11px !important; color: var(--text-dim) !important; margin: 10px 0 0 !important; }
+.ai-setup .btn-primary { width: 100%; padding: 13px; border-radius: 10px; font-size: 15px; }
+.ai-setup .ai-key-btn { width: 100%; padding: 11px; border-radius: 10px; }
+.ai-or { text-align: center; color: var(--text-dim); font-size: 12px; margin: 14px 0 10px; }
+.ai-note { font-size: 11px !important; color: var(--text-dim) !important; margin: 8px 0 0 !important; line-height: 1.4; }
 .ai-mono { font-family: ui-monospace, Menlo, monospace; color: var(--accent-2); }
 
 .ai-chat {

@@ -99,12 +99,18 @@
           <button class="ai-config-btn" id="ai-config-btn" aria-label="Configurar IA">⚙️</button>
         </div>
 
-        <!-- Configuración de clave (se muestra si no hay clave) -->
+        <!-- Configuración (se muestra si aún no hay IA elegida) -->
         <div id="ai-setup" class="ai-setup">
-          <p>Para charlar con el entrenador con IA real, pega tu <b>API key de Anthropic</b>. Se guarda solo en este dispositivo.</p>
-          <input id="ai-key-input" class="ai-key-input" type="password" placeholder="sk-ant-..." autocomplete="off" />
-          <button class="btn-primary" id="ai-key-save">Guardar clave</button>
-          <p class="ai-note">¿No tienes clave? Consíguela en <span class="ai-mono">console.anthropic.com</span>. Aviso: úsala solo en tu dispositivo personal.</p>
+          <p><b>Opción gratis</b> — sin clave: usa un modelo <b>Llama</b> que corre dentro
+          de tu móvil. La primera vez se descarga (~900 MB) y luego funciona, incluso sin internet.</p>
+          <button class="btn-primary" id="ai-local-btn">🆓 Usar IA gratis (Llama)</button>
+          <p class="ai-note">Necesita un navegador moderno con WebGPU (Chrome/Edge actuales, Safari 18+).</p>
+          <div class="ai-or">— o usa tu propia clave —</div>
+          <input id="ai-key-input" class="ai-key-input" type="password" placeholder="sk-ant-…, AIza… o sk-…" autocomplete="off" />
+          <button class="btn-secondary ai-key-btn" id="ai-key-save">Guardar clave</button>
+          <p class="ai-note">Detecta el proveedor por la clave: Claude (<span class="ai-mono">sk-ant-…</span>),
+          Gemini gratis (<span class="ai-mono">AIza…</span>, en aistudio.google.com) u OpenAI (<span class="ai-mono">sk-…</span>).
+          La clave se guarda solo en tu dispositivo.</p>
         </div>
 
         <!-- Conversación -->
