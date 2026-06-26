@@ -156,6 +156,19 @@ html, body {
   background: var(--accent); color: #fff; border-radius: 50%;
 }
 .coach-card-text { margin: 0; font-size: 14px; line-height: 1.45; font-weight: 500; }
+
+/* Fila para preguntarle al entrenador, justo bajo su burbuja */
+.coach-ask { display: flex; gap: 8px; margin: -6px 0 14px; }
+.coach-ask-input {
+  flex: 1; padding: 10px 14px; border-radius: 20px; border: 1px solid var(--line);
+  background: var(--bg-soft); color: var(--text); font-size: 13.5px;
+}
+.coach-ask-input:focus { outline: none; border-color: var(--accent); }
+.coach-ask-send {
+  flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%;
+  background: var(--accent); color: #fff; border: none; font-size: 16px; cursor: pointer;
+}
+.coach-ask-send:active { transform: scale(.94); }
 /* La burbuja del entrenador es estable: solo el texto cambia con un fundido suave */
 .coach-card-text.fade { animation: softfade .3s ease; }
 .coach-card.shake { animation: shake .4s ease; }

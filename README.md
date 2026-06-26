@@ -57,22 +57,30 @@ Cada curso es un repertorio: tus jugadas fijas y una respuesta concreta para
 cada réplica del rival. El número de líneas es el de respuestas distintas que
 puede plantear el rival (sin variaciones que se contradigan entre sí).
 
-## 🤖 Entrenador con IA
+## 🤖 Entrenador integrado (sin descargar ni configurar nada)
 
-Pulsa **💬** en una lección. Dos formas de usarlo:
+El entrenador vive en la **misma burbuja** de la lección:
 
-1. **Gratis, sin clave (recomendada).** Un modelo **Llama** (de Meta) que corre
-   **dentro del navegador** con WebLLM: gratis, privado y offline tras la
-   primera descarga (~900 MB). Necesita un navegador con WebGPU (Chrome/Edge
-   actuales, Safari 18+).
-2. **Con tu propia clave** (se guarda solo en tu dispositivo). La app detecta el
-   proveedor por el formato de la clave:
-   - `sk-ant-…` → **Claude** (Anthropic)
-   - `AIza…` → **Google Gemini** (tiene nivel gratuito en aistudio.google.com)
-   - `sk-…` → **OpenAI** (GPT)
+- **Explica el porqué de cada jugada automáticamente.** Cada jugada del sistema
+  lleva su explicación predefinida (la idea y el plan), al instante y offline.
+  No hay que descargar ni configurar nada.
+- **Le puedes preguntar** en el campo bajo la burbuja y responde ahí mismo. Las
+  preguntas comunes (*"¿por qué esta jugada?"*, *"¿qué plan tengo?"*, *"¿y si el
+  rival juega otra cosa?"*, *"¿qué juego ahora?"*) se responden con el
+  conocimiento ya incluido, sin IA externa.
 
-El entrenador conoce la apertura y la posición en la que estás, así que puedes
-preguntarle *"¿por qué Bf4 y no Bg5?"* o *"¿qué plan tengo ahora?"*.
+### IA opcional para preguntas libres
+Para chatear libremente puedes activar una IA real en **Ajustes → 🤖 Entrenador
+IA** (no es necesaria para la experiencia normal):
+- **Gratis, sin clave:** modelo **Llama** que corre dentro del navegador
+  (WebLLM); se descarga una vez (~900 MB). Necesita WebGPU.
+- **Con tu clave** (más calidad): se detecta el proveedor por el formato —
+  `sk-ant-…` → Claude, `AIza…` → Gemini (gratis), `sk-…` → OpenAI. Se guarda
+  solo en tu dispositivo.
+
+> Nota honesta: una IA de chat “de verdad” no puede ir embebida sin descarga ni
+> servidor (el modelo pesa cientos de MB). Por eso el entrenador integrado usa
+> explicaciones predefinidas (instantáneas), y la IA generativa es un extra.
 
 ## 🚀 Cómo ejecutarla en tu teléfono
 

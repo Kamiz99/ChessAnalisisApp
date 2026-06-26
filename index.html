@@ -61,6 +61,12 @@
         <p class="coach-card-text" id="coach-text">…</p>
       </div>
 
+      <form class="coach-ask" id="coach-ask">
+        <input id="coach-ask-input" class="coach-ask-input" type="text"
+               placeholder="Pregúntale al entrenador…" autocomplete="off" />
+        <button class="coach-ask-send" id="coach-ask-send" type="submit" aria-label="Preguntar">➤</button>
+      </form>
+
       <div class="board-wrap">
         <div id="board" class="board"><!-- generado por JS --></div>
       </div>
@@ -68,7 +74,6 @@
       <div class="lesson-toolbar">
         <button class="tool-btn" id="btn-settings" aria-label="Ajustes">⚙️</button>
         <button class="tool-btn tool-hint" id="btn-hint">💡 Pista</button>
-        <button class="tool-btn tool-ai" id="btn-ai" aria-label="Preguntar al entrenador">💬</button>
         <button class="tool-btn" id="btn-mode" aria-pressed="false">Guiado</button>
         <div class="nav-arrows">
           <button class="tool-btn" id="btn-prev" aria-label="Anterior">‹</button>
@@ -89,36 +94,23 @@
       </div>
     </div>
 
-    <!-- ============ PANEL: ENTRENADOR IA ============ -->
-    <div id="ai-sheet" class="sheet">
+    <!-- ============ HOJA: CLAVE IA (avanzado, opcional) ============ -->
+    <div id="aikey-sheet" class="sheet">
       <div class="sheet-backdrop" data-close-sheet></div>
-      <div class="sheet-panel ai-panel">
+      <div class="sheet-panel">
         <div class="sheet-handle"></div>
-        <div class="ai-head">
-          <span class="ai-title">💬 Pregúntale al entrenador</span>
-          <button class="ai-config-btn" id="ai-config-btn" aria-label="Configurar IA">⚙️</button>
-        </div>
-
-        <!-- Configuración (se muestra si aún no hay IA elegida) -->
-        <div id="ai-setup" class="ai-setup">
-          <p><b>Opción gratis</b> — sin clave: usa un modelo <b>Llama</b> que corre dentro
-          de tu móvil. La primera vez se descarga (~900 MB) y luego funciona, incluso sin internet.</p>
-          <button class="btn-primary" id="ai-local-btn">🆓 Usar IA gratis (Llama)</button>
-          <p class="ai-note">Necesita un navegador moderno con WebGPU (Chrome/Edge actuales, Safari 18+).</p>
-          <div class="ai-or">— o usa tu propia clave —</div>
-          <input id="ai-key-input" class="ai-key-input" type="password" placeholder="sk-ant-…, AIza… o sk-…" autocomplete="off" />
-          <button class="btn-secondary ai-key-btn" id="ai-key-save">Guardar clave</button>
-          <p class="ai-note">Detecta el proveedor por la clave: Claude (<span class="ai-mono">sk-ant-…</span>),
-          Gemini gratis (<span class="ai-mono">AIza…</span>, en aistudio.google.com) u OpenAI (<span class="ai-mono">sk-…</span>).
-          La clave se guarda solo en tu dispositivo.</p>
-        </div>
-
-        <!-- Conversación -->
-        <div id="ai-chat" class="ai-chat"><!-- mensajes --></div>
-        <form id="ai-form" class="ai-form">
-          <input id="ai-input" class="ai-input" type="text" placeholder="Escribe tu duda…" autocomplete="off" />
-          <button class="ai-send" id="ai-send" type="submit" aria-label="Enviar">➤</button>
-        </form>
+        <h3>Entrenador IA (opcional)</h3>
+        <p class="sheet-sub">El entrenador ya te explica el porqué de cada jugada y el plan
+        sin descargar ni configurar nada. Esto es solo para <b>preguntas libres</b>:</p>
+        <button class="btn-primary ai-key-btn" id="ai-local-btn">🆓 IA gratis (Llama, se descarga la 1ª vez ~900 MB)</button>
+        <p class="ai-note">Corre dentro de tu móvil; sin clave. Necesita WebGPU (Chrome/Edge actuales, Safari 18+).</p>
+        <div class="ai-or">— o, para más calidad, tu propia clave —</div>
+        <input id="ai-key-input" class="ai-key-input" type="password" placeholder="sk-ant-…, AIza… o sk-…" autocomplete="off" />
+        <button class="btn-secondary ai-key-btn" id="ai-key-save">Guardar clave</button>
+        <p class="ai-note">Claude (<span class="ai-mono">sk-ant-…</span>), Gemini gratis
+        (<span class="ai-mono">AIza…</span>, aistudio.google.com) u OpenAI (<span class="ai-mono">sk-…</span>).
+        Se guarda solo en tu dispositivo.</p>
+        <button class="sheet-row sheet-close" data-close-sheet>Cerrar</button>
       </div>
     </div>
 
@@ -131,6 +123,7 @@
         <button class="sheet-row" id="set-flip">🔄 Girar tablero</button>
         <button class="sheet-row" id="set-restart">↺ Reiniciar lección</button>
         <button class="sheet-row" id="set-index">📚 Ver todas las variaciones</button>
+        <button class="sheet-row" id="set-aikey">🤖 Entrenador IA (avanzado)</button>
         <button class="sheet-row" id="set-home">🏠 Volver al inicio</button>
         <button class="sheet-row sheet-close" data-close-sheet>Cerrar</button>
       </div>
