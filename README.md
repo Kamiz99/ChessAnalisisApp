@@ -64,10 +64,12 @@ El entrenador vive en la **misma burbuja** de la lección:
 - **Explica el porqué de cada jugada automáticamente.** Cada jugada del sistema
   lleva su explicación predefinida (la idea y el plan), al instante y offline.
   No hay que descargar ni configurar nada.
-- **Le puedes preguntar** en el campo bajo la burbuja y responde ahí mismo. Las
-  preguntas comunes (*"¿por qué esta jugada?"*, *"¿qué plan tengo?"*, *"¿y si el
-  rival juega otra cosa?"*, *"¿qué juego ahora?"*) se responden con el
-  conocimiento ya incluido, sin IA externa.
+- **Preguntas de un toque.** Bajo la burbuja hay chips rápidos — *🤔 ¿Por qué?*,
+  *🧭 El plan*, *♟ ¿Y si juega otra?* — que responden al instante con el
+  conocimiento ya incluido, sin teclear ni IA externa. El botón **💬** despliega
+  un campo para preguntas libres escritas.
+- **Mensajes con tiempo de lectura.** Cada globo de texto permanece en pantalla
+  un tiempo proporcional a su longitud antes de que la lección avance.
 
 ### IA opcional para preguntas libres
 Para chatear libremente puedes activar una IA real en **Ajustes → 🤖 Entrenador

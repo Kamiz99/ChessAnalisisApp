@@ -77,7 +77,9 @@
     el.completeOverlay = $("#complete-overlay");
     el.completeText = $("#complete-text");
     // IA (entrenador en la burbuja)
+    el.coachAsk = $("#coach-ask");
     el.coachAskInput = $("#coach-ask-input");
+    el.coachChips = $("#coach-chips");
     el.aiKeySheet = $("#aikey-sheet");
     el.aiKeyInput = $("#ai-key-input");
   }
@@ -185,7 +187,7 @@
   // =========================================================================
   function renderHome() {
     el.openingsList.innerHTML = "";
-    OPENINGS.forEach((op) => {
+    OPENINGS.forEach((op, cardIdx) => {
       const total = op.variations.length;
       const done = memorizedCount(op);
       const pct = Math.round((done / total) * 100);
@@ -194,6 +196,7 @@
         : "Continuar curso";
       const card = document.createElement("button");
       card.className = "opening-card";
+      card.style.animationDelay = (cardIdx * 55) + "ms"; // entrada escalonada
       card.innerHTML = `
         <span class="opening-emoji">${op.emoji}</span>
         <span class="opening-info">
@@ -281,6 +284,7 @@
     state.locked = false;
     state.flipped = opening.color === "black";
     state.aiHistory = [];
+    el.coachAsk.classList.add("is-hidden"); // el cajón de pregunta libre empieza plegado
     el.btnMode.textContent = state.guided ? "Guiado" : "Memoria";
     let tag;
     if (phase === "learn") {
@@ -418,6 +422,7 @@
         const cnode = state.pieceNodes[captured.id];
         if (cnode) {
           cnode.classList.add("captured");
+          cnode.style.transform += " scale(.55)"; // se encoge mientras se desvanece
           const id = captured.id;
           setTimeout(() => { cnode.remove(); delete state.pieceNodes[id]; }, 260);
         }
@@ -434,7 +439,14 @@
   }
 
   // Duración del deslizamiento (debe coincidir con la transición CSS).
-  const SLIDE_MS = 280;
+  const SLIDE_MS = 340;
+
+  // Tiempo de lectura de un mensaje del entrenador: proporcional a su longitud
+  // (~45 ms por carácter ≈ ritmo de lectura tranquilo), con mínimo y máximo.
+  function readMs(text) {
+    const len = text ? text.length : 0;
+    return Math.max(1500, Math.min(5200, 600 + len * 45));
+  }
 
   function runStep() {
     const ms = moves();
@@ -449,15 +461,16 @@
     if (move.by === "engine") {
       state.locked = true;
       clearHints();
-      // Pausa para leer el mensaje, anima la jugada y avanza al terminar.
+      // Pausa proporcional al texto (que dé tiempo de leerlo), luego anima la
+      // jugada y avanza al terminar el deslizamiento.
       setTimeout(() => {
         animateMove(move);
         state.step++;
         setTimeout(() => {
           state.locked = false;
           runStep();
-        }, SLIDE_MS + 60);
-      }, 700);
+        }, SLIDE_MS + 120);
+      }, readMs(coachText));
     } else {
       state.locked = false;
       state.selected = null;
@@ -475,6 +488,11 @@
   function setCoach(text, mood) {
     const faces = { talk: "♞", happy: "😊", think: "🤔", win: "🏆" };
     el.coachMood.textContent = faces[mood] || "♞";
+    if (mood === "happy" || mood === "win") {
+      el.coachMood.classList.remove("bounce");
+      void el.coachMood.offsetWidth;
+      el.coachMood.classList.add("bounce");
+    }
     if (text === lastCoachText) return; // misma burbuja: no repintar ni parpadear
     lastCoachText = text;
     el.coachText.textContent = text;
@@ -544,10 +562,11 @@
     animateMove(move);
     state.step++;
     state.locked = true;
+    // Deja ver el elogio un instante antes de pasar al siguiente mensaje.
     setTimeout(() => {
       state.locked = false;
       runStep();
-    }, SLIDE_MS + 320);
+    }, SLIDE_MS + 850);
   }
 
   // ---- Arrastre de piezas con el dedo (Pointer Events) --------------------
@@ -641,10 +660,11 @@
     if (actions) actions.style.display = "none";
     el.completeOverlay.classList.add("is-open");
     clearTimeout(flashTimer);
+    // Se muestra el tiempo necesario para leerlo con calma y sigue solo.
     flashTimer = setTimeout(() => {
       el.completeOverlay.classList.remove("is-open");
       cb();
-    }, 1700);
+    }, Math.max(2200, readMs(text)));
   }
 
   function finishLesson() {
@@ -786,6 +806,25 @@
     return null;
   }
 
+  // Respuestas rápidas de un toque (chips bajo la burbuja): sin escribir nada.
+  function quickAnswer(kind) {
+    const ms = moves();
+    const plan = `El plan de «${state.variation.name}» es: ${state.variation.blurb}`;
+    if (kind === "plan") return plan + ".";
+    if (kind === "rival") {
+      return "Esta línea es nuestra respuesta concreta a lo que jugó el rival. " +
+        "Si responde otra cosa, lo cubren las demás variaciones del curso (⚙️ → Ver todas las variaciones).";
+    }
+    // "why": el porqué de la jugada actual (o de la última si le toca al rival).
+    let m = ms[state.step] && ms[state.step].by === "user" ? ms[state.step] : ms[state.step - 1];
+    if (!m) m = ms[state.step] || ms[ms.length - 1];
+    if (m && m.by === "user" && m === ms[state.step] && !state.guided) {
+      // En fase de memoria no revelamos la jugada pendiente.
+      return "De memoria 😉 Primero intenta recordarla; si te atascas, 💡 Pista te la enseña.";
+    }
+    return (m && m.text ? m.text + " " : "") + plan + ".";
+  }
+
   // El alumno le pregunta al entrenador; la respuesta sale EN LA MISMA burbuja.
   async function askCoach(text) {
     if (state.aiBusy) return;
@@ -825,13 +864,28 @@
     $("#btn-back").addEventListener("click", goHome);
     $("#btn-hint").addEventListener("click", showHint);
 
-    // Preguntar al entrenador desde la misma burbuja.
-    $("#coach-ask").addEventListener("submit", (e) => {
+    // Chips de pregunta rápida: un toque y el entrenador responde al instante.
+    el.coachChips.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-ask]");
+      if (!btn) return;
+      const kind = btn.dataset.ask;
+      if (kind === "free") {
+        // 💬 despliega (o pliega) el cajón de pregunta libre.
+        const hidden = el.coachAsk.classList.toggle("is-hidden");
+        if (!hidden) el.coachAskInput.focus();
+        return;
+      }
+      setCoach(quickAnswer(kind), "talk");
+    });
+
+    // Pregunta libre escrita (plegada por defecto tras el botón 💬).
+    el.coachAsk.addEventListener("submit", (e) => {
       e.preventDefault();
       const t = el.coachAskInput.value.trim();
       if (!t) return;
       el.coachAskInput.value = "";
       el.coachAskInput.blur();
+      el.coachAsk.classList.add("is-hidden");
       askCoach(t);
     });
 
