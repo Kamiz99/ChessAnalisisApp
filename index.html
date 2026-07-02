@@ -61,19 +61,6 @@
         <p class="coach-card-text" id="coach-text">…</p>
       </div>
 
-      <!-- Preguntas rápidas: un toque y el entrenador responde en su burbuja. -->
-      <div class="coach-chips" id="coach-chips">
-        <button type="button" class="chip" data-ask="why">🤔 ¿Por qué?</button>
-        <button type="button" class="chip" data-ask="plan">🧭 El plan</button>
-        <button type="button" class="chip" data-ask="rival">♟ ¿Y si juega otra?</button>
-        <button type="button" class="chip chip-more" data-ask="free" aria-label="Otra pregunta">💬</button>
-      </div>
-      <form class="coach-ask is-hidden" id="coach-ask">
-        <input id="coach-ask-input" class="coach-ask-input" type="text"
-               placeholder="Escribe tu pregunta…" autocomplete="off" />
-        <button class="coach-ask-send" id="coach-ask-send" type="submit" aria-label="Preguntar">➤</button>
-      </form>
-
       <div class="board-wrap">
         <div id="board" class="board"><!-- generado por JS --></div>
       </div>
@@ -101,27 +88,6 @@
       </div>
     </div>
 
-    <!-- ============ HOJA: CLAVE IA (avanzado, opcional) ============ -->
-    <div id="aikey-sheet" class="sheet">
-      <div class="sheet-backdrop" data-close-sheet></div>
-      <div class="sheet-panel">
-        <div class="sheet-handle"></div>
-        <h3>Entrenador IA (opcional)</h3>
-        <p class="sheet-sub">El entrenador ya te explica el porqué de cada jugada y el plan
-        sin descargar ni configurar nada. Esto es solo para <b>preguntas libres</b>
-        (el botón 💬 bajo su burbuja):</p>
-        <button class="btn-primary ai-key-btn" id="ai-local-btn">🆓 IA gratis (Llama, se descarga la 1ª vez ~900 MB)</button>
-        <p class="ai-note">Corre dentro de tu móvil; sin clave. Necesita WebGPU (Chrome/Edge actuales, Safari 18+).</p>
-        <div class="ai-or">— o, para más calidad, tu propia clave —</div>
-        <input id="ai-key-input" class="ai-key-input" type="password" placeholder="sk-ant-…, AIza… o sk-…" autocomplete="off" />
-        <button class="btn-secondary ai-key-btn" id="ai-key-save">Guardar clave</button>
-        <p class="ai-note">Claude (<span class="ai-mono">sk-ant-…</span>), Gemini gratis
-        (<span class="ai-mono">AIza…</span>, aistudio.google.com) u OpenAI (<span class="ai-mono">sk-…</span>).
-        Se guarda solo en tu dispositivo.</p>
-        <button class="sheet-row sheet-close" data-close-sheet>Cerrar</button>
-      </div>
-    </div>
-
     <!-- ============ HOJA: AJUSTES ============ -->
     <div id="settings-sheet" class="sheet">
       <div class="sheet-backdrop" data-close-sheet></div>
@@ -131,7 +97,6 @@
         <button class="sheet-row" id="set-flip">🔄 Girar tablero</button>
         <button class="sheet-row" id="set-restart">↺ Reiniciar lección</button>
         <button class="sheet-row" id="set-index">📚 Ver todas las variaciones</button>
-        <button class="sheet-row" id="set-aikey">🤖 Entrenador IA (avanzado)</button>
         <button class="sheet-row" id="set-home">🏠 Volver al inicio</button>
         <button class="sheet-row sheet-close" data-close-sheet>Cerrar</button>
       </div>
@@ -154,7 +119,6 @@
   </div>
 
   <script src="openings.js"></script>
-  <script src="ai.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

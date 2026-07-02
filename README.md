@@ -1,8 +1,8 @@
 # ♞ Aprende Aperturas de Ajedrez
 
 App móvil (PWA) para **aprender aperturas de ajedrez y sus variaciones** con un
-entrenador cercano que te explica cada jugada en lenguaje cordial y humano, y
-que además puede **responder tus dudas con IA real (Claude)**.
+entrenador cercano que te explica cada jugada —y su porqué— en lenguaje cordial
+y humano, sin descargar ni configurar nada.
 
 Inspirada en apps tipo Chessly/Chessable: tablero interactivo, barra de
 progreso, botón de pista y un asistente que te acompaña paso a paso.
@@ -28,30 +28,26 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
   encontrando la jugada correcta de la línea.
 - **Repertorio coherente por apertura.** Tus jugadas son fijas y cada
   variación responde a una jugada concreta del rival con una única réplica
-  (sin contradicciones). 34 líneas en total, validadas automáticamente.
-- **Entrenador cordial.** Mensajes humanos que explican *por qué* de cada
-  jugada, con ánimos cuando aciertas y pistas suaves cuando fallas.
-- **💬 Entrenador con IA real (opcional).** Pulsa 💬 y pregúntale libremente
-  sobre planes, ideas o errores típicos. Usa la API de Claude
-  (`claude-opus-4-8`). Tú pegas tu propia API key de Anthropic y se guarda
-  **solo en tu dispositivo** (`localStorage`).
-- **Modo Guiado / Examen.** En Guiado se resalta la pieza a mover; en Examen
+  (sin contradicciones). 44 líneas en total, validadas automáticamente.
+- **Entrenador cordial.** Cada jugada llega con su explicación y su porqué en
+  la misma burbuja, con ánimos cuando aciertas y pistas suaves cuando fallas.
+- **Modo Guiado / Memoria.** En Guiado se resalta la pieza a mover; en Memoria
   pruebas tu memoria (la pista 💡 sigue disponible).
 - **Tablero orientado a tu bando.** Si la apertura se juega con negras, el
   tablero se gira para que veas tus piezas abajo.
 - **PWA instalable y offline.** «Añadir a la pantalla de inicio» en el móvil;
-  funciona sin conexión (salvo el entrenador IA, que necesita internet).
+  funciona completamente sin conexión.
 
 ## ♟ Cursos incluidos (6 aperturas · repertorio coherente)
 
 | Curso | Bando | Variaciones |
 |---|---|---|
-| Sistema Londres | Blancas | 7 |
-| Apertura Italiana | Blancas | 5 |
-| Ruy López | Blancas | 5 |
-| Defensa Siciliana | Blancas | 6 |
-| Gambito de Dama | Blancas | 6 |
-| Defensa India de Rey | Negras | 5 |
+| Sistema Londres | Blancas | 11 |
+| Apertura Italiana | Blancas | 6 |
+| Ruy López | Blancas | 6 |
+| Defensa Siciliana | Blancas | 7 |
+| Gambito de Dama | Blancas | 8 |
+| Defensa India de Rey | Negras | 6 |
 
 Cada curso es un repertorio: tus jugadas fijas y una respuesta concreta para
 cada réplica del rival. El número de líneas es el de respuestas distintas que
@@ -59,30 +55,15 @@ puede plantear el rival (sin variaciones que se contradigan entre sí).
 
 ## 🤖 Entrenador integrado (sin descargar ni configurar nada)
 
-El entrenador vive en la **misma burbuja** de la lección:
+El entrenador vive en la **misma burbuja** de la lección, sin botones extra:
 
-- **Explica el porqué de cada jugada automáticamente.** Cada jugada del sistema
-  lleva su explicación predefinida (la idea y el plan), al instante y offline.
-  No hay que descargar ni configurar nada.
-- **Preguntas de un toque.** Bajo la burbuja hay chips rápidos — *🤔 ¿Por qué?*,
-  *🧭 El plan*, *♟ ¿Y si juega otra?* — que responden al instante con el
-  conocimiento ya incluido, sin teclear ni IA externa. El botón **💬** despliega
-  un campo para preguntas libres escritas.
+- **Cada jugada sale con su porqué.** El texto de cada movimiento incluye la
+  idea y el plan (explicaciones predefinidas), al instante y offline. No hay
+  nada que preguntar ni configurar: el entrenador se adelanta.
 - **Mensajes con tiempo de lectura.** Cada globo de texto permanece en pantalla
   un tiempo proporcional a su longitud antes de que la lección avance.
-
-### IA opcional para preguntas libres
-Para chatear libremente puedes activar una IA real en **Ajustes → 🤖 Entrenador
-IA** (no es necesaria para la experiencia normal):
-- **Gratis, sin clave:** modelo **Llama** que corre dentro del navegador
-  (WebLLM); se descarga una vez (~900 MB). Necesita WebGPU.
-- **Con tu clave** (más calidad): se detecta el proveedor por el formato —
-  `sk-ant-…` → Claude, `AIza…` → Gemini (gratis), `sk-…` → OpenAI. Se guarda
-  solo en tu dispositivo.
-
-> Nota honesta: una IA de chat “de verdad” no puede ir embebida sin descarga ni
-> servidor (el modelo pesa cientos de MB). Por eso el entrenador integrado usa
-> explicaciones predefinidas (instantáneas), y la IA generativa es un extra.
+- **Burbuja de altura fija.** Al cambiar el texto, el tablero y el resto de la
+  pantalla no se mueven.
 
 ## 🚀 Cómo ejecutarla en tu teléfono
 
@@ -101,17 +82,13 @@ python3 -m http.server 8000
 ```
 Abre `http://localhost:8000` (mejor en la vista móvil del navegador).
 
-> Nota: el entrenador IA hace peticiones a `api.anthropic.com` desde el
-> navegador; necesita conexión y una API key válida.
-
 ## 🗂 Estructura
 
 ```
-index.html     Pantallas (inicio + lección) y hojas (variaciones, IA, ajustes)
+index.html     Pantallas (inicio + lección) y hojas (variaciones, ajustes)
 styles.css     Estilos mobile-first, tema oscuro
-app.js         Motor de la lección, tablero, navegación e IA (UI)
+app.js         Motor de la lección, tablero y navegación
 openings.js    Datos de aperturas, variaciones y textos del entrenador
-ai.js          Integración con la API de Claude (entrenador IA)
 sw.js          Service worker (offline / instalación)
 manifest.json  Manifiesto PWA
 icon.svg       Icono de la app
@@ -154,4 +131,3 @@ exactamente en qué posición y no escribe el archivo.
 - Variaciones basadas en estadísticas reales (frecuencia de aparición) usando
   la API del explorador de aperturas de Lichess.
 - Repaso espaciado y seguimiento de progreso por usuario.
-- Streaming de las respuestas del entrenador IA.
