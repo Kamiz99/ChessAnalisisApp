@@ -61,9 +61,16 @@
         <p class="coach-card-text" id="coach-text">…</p>
       </div>
 
-      <form class="coach-ask" id="coach-ask">
+      <!-- Preguntas rápidas: un toque y el entrenador responde en su burbuja. -->
+      <div class="coach-chips" id="coach-chips">
+        <button type="button" class="chip" data-ask="why">🤔 ¿Por qué?</button>
+        <button type="button" class="chip" data-ask="plan">🧭 El plan</button>
+        <button type="button" class="chip" data-ask="rival">♟ ¿Y si juega otra?</button>
+        <button type="button" class="chip chip-more" data-ask="free" aria-label="Otra pregunta">💬</button>
+      </div>
+      <form class="coach-ask is-hidden" id="coach-ask">
         <input id="coach-ask-input" class="coach-ask-input" type="text"
-               placeholder="Pregúntale al entrenador…" autocomplete="off" />
+               placeholder="Escribe tu pregunta…" autocomplete="off" />
         <button class="coach-ask-send" id="coach-ask-send" type="submit" aria-label="Preguntar">➤</button>
       </form>
 
@@ -101,7 +108,8 @@
         <div class="sheet-handle"></div>
         <h3>Entrenador IA (opcional)</h3>
         <p class="sheet-sub">El entrenador ya te explica el porqué de cada jugada y el plan
-        sin descargar ni configurar nada. Esto es solo para <b>preguntas libres</b>:</p>
+        sin descargar ni configurar nada. Esto es solo para <b>preguntas libres</b>
+        (el botón 💬 bajo su burbuja):</p>
         <button class="btn-primary ai-key-btn" id="ai-local-btn">🆓 IA gratis (Llama, se descarga la 1ª vez ~900 MB)</button>
         <p class="ai-note">Corre dentro de tu móvil; sin clave. Necesita WebGPU (Chrome/Edge actuales, Safari 18+).</p>
         <div class="ai-or">— o, para más calidad, tu propia clave —</div>

@@ -40,7 +40,11 @@ html, body {
 
 /* ---- Conmutador de pantallas ------------------------------------------- */
 .screen { display: none; padding: env(safe-area-inset-top) 16px 24px; }
-.screen.is-active { display: block; }
+.screen.is-active { display: block; animation: screenIn .32s ease both; }
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
 /* =========================================================================
  * INICIO
@@ -87,9 +91,14 @@ html, body {
   padding: 14px;
   color: var(--text);
   cursor: pointer;
-  transition: transform .12s ease, border-color .12s ease;
+  transition: transform .15s ease, border-color .15s ease;
+  animation: cardIn .4s ease backwards; /* entrada escalonada (delay desde JS) */
 }
 .opening-card:active { transform: scale(0.985); border-color: var(--accent); }
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 .opening-emoji { font-size: 30px; flex: 0 0 auto; }
 .opening-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
 .opening-name { font-weight: 700; font-size: 16px; }
@@ -136,7 +145,7 @@ html, body {
   height: 100%; width: 0%;
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
   border-radius: 999px;
-  transition: width .35s ease;
+  transition: width .5s cubic-bezier(.22, .9, .3, 1);
 }
 
 /* Tarjeta del entrenador */
@@ -156,9 +165,32 @@ html, body {
   background: var(--accent); color: #fff; border-radius: 50%;
 }
 .coach-card-text { margin: 0; font-size: 14px; line-height: 1.45; font-weight: 500; }
+/* El avatar celebra los aciertos con un pequeño rebote */
+.coach-card-avatar.bounce { animation: moodpop .5s cubic-bezier(.34, 1.56, .64, 1); }
+@keyframes moodpop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.28) rotate(-6deg); }
+  100% { transform: scale(1); }
+}
 
-/* Fila para preguntarle al entrenador, justo bajo su burbuja */
-.coach-ask { display: flex; gap: 8px; margin: -6px 0 14px; }
+/* Chips de pregunta rápida: un toque, sin teclear */
+.coach-chips { display: flex; gap: 8px; margin: -6px 0 14px; flex-wrap: wrap; }
+.chip {
+  background: var(--bg-card); border: 1px solid var(--line); color: var(--text-dim);
+  font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: 999px;
+  cursor: pointer;
+  transition: transform .15s ease, border-color .15s ease, color .15s ease;
+}
+.chip:active { transform: scale(.92); border-color: var(--accent); color: var(--text); }
+.chip-more { padding: 8px 11px; }
+
+/* Cajón de pregunta libre: plegado por defecto, se abre con el chip 💬 */
+.coach-ask { display: flex; gap: 8px; margin: -6px 0 14px; animation: askIn .25s ease; }
+.coach-ask.is-hidden { display: none; }
+@keyframes askIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 .coach-ask-input {
   flex: 1; padding: 10px 14px; border-radius: 20px; border: 1px solid var(--line);
   background: var(--bg-soft); color: var(--text); font-size: 13.5px;
@@ -170,10 +202,17 @@ html, body {
 }
 .coach-ask-send:active { transform: scale(.94); }
 /* La burbuja del entrenador es estable: solo el texto cambia con un fundido suave */
-.coach-card-text.fade { animation: softfade .3s ease; }
+.coach-card-text.fade { animation: softfade .4s ease; }
 .coach-card.shake { animation: shake .4s ease; }
-@keyframes softfade { from { opacity: .3; } to { opacity: 1; } }
-@keyframes pop { 0% { transform: scale(.97); opacity: .6; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes softfade {
+  from { opacity: .25; transform: translateY(3px); }
+  to   { opacity: 1;  transform: translateY(0); }
+}
+@keyframes pop {
+  0%   { transform: scale(.82) translateY(14px); opacity: 0; }
+  60%  { transform: scale(1.03) translateY(-2px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
 @keyframes shake {
   0%,100% { transform: translateX(0); }
   25% { transform: translateX(-5px); }
@@ -231,9 +270,10 @@ html, body {
   will-change: transform;
   filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.45));
   /* deslizamiento fluido (debe coincidir con SLIDE_MS en app.js) */
-  transition: transform .28s cubic-bezier(.22,.61,.36,1), opacity .2s ease;
+  transition: transform .34s cubic-bezier(.25,.8,.3,1), opacity .22s ease;
 }
-.pc.captured { opacity: 0; transition: opacity .2s ease; }
+/* La escala de encogido la aplica JS sobre el transform en línea. */
+.pc.captured { opacity: 0; transition: opacity .22s ease, transform .22s ease; }
 .pc.sel { filter: drop-shadow(0 2px 7px rgba(138,92,255,.95)); }
 .pc.movehint { animation: pcpulse 1.3s ease-in-out infinite; }
 /* Pieza mientras se arrastra con el dedo: sigue al puntero, sin transición */
@@ -250,6 +290,8 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .pc { transition: none; }
   .pc.movehint { animation: none; }
+  .screen.is-active, .opening-card, .coach-card-text.fade, .coach-card-avatar.bounce,
+  .sheet-backdrop, .sheet-panel, .overlay.is-open, .overlay-card, .coach-ask { animation: none; }
 }
 
 /* Resaltados */
@@ -293,7 +335,7 @@ html, body {
  * ========================================================================= */
 .sheet { position: fixed; inset: 0; z-index: 40; display: none; }
 .sheet.is-open { display: block; }
-.sheet-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); }
+.sheet-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); animation: fadeIn .25s ease; }
 .sheet-panel {
   position: absolute; left: 0; right: 0; bottom: 0;
   max-width: 480px; margin: 0 auto;
@@ -301,9 +343,10 @@ html, body {
   border-radius: 20px 20px 0 0;
   padding: 10px 16px calc(20px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--line);
-  animation: slideUp .25s ease;
+  animation: slideUp .32s cubic-bezier(.22, .9, .3, 1);
 }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .sheet-handle { width: 40px; height: 4px; background: var(--line); border-radius: 999px; margin: 6px auto 12px; }
 .sheet-panel h3 { margin: 0 0 12px; font-size: 16px; }
 .sheet-row {
@@ -322,12 +365,12 @@ html, body {
   display: none; align-items: center; justify-content: center;
   background: rgba(0,0,0,.6); padding: 24px;
 }
-.overlay.is-open { display: flex; }
+.overlay.is-open { display: flex; animation: fadeIn .22s ease; }
 .overlay-card {
   background: var(--bg-card); border: 1px solid var(--line);
   border-radius: 20px; padding: 26px 22px; text-align: center;
   max-width: 360px; width: 100%;
-  animation: pop .3s ease;
+  animation: pop .38s cubic-bezier(.34, 1.4, .64, 1);
 }
 .overlay-emoji { font-size: 48px; }
 .overlay-card h3 { margin: 10px 0 6px; font-size: 20px; }
