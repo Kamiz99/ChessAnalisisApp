@@ -49,10 +49,7 @@
     locked: false,
     pieceNodes: {},     // id de pieza -> elemento DOM (para animar)
     selectable: null,   // casilla a resaltar en turno guiado
-    hint: null,         // {from?, to?} resaltado de pista
-    aiHistory: [],      // conversación con el entrenador IA [{role, content}]
-    aiBusy: false,
-    aiStatus: ""        // texto de progreso (descarga del modelo local)
+    hint: null          // {from?, to?} resaltado de pista
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -76,12 +73,6 @@
     el.variationsList = $("#variations-list");
     el.completeOverlay = $("#complete-overlay");
     el.completeText = $("#complete-text");
-    // IA (entrenador en la burbuja)
-    el.coachAsk = $("#coach-ask");
-    el.coachAskInput = $("#coach-ask-input");
-    el.coachChips = $("#coach-chips");
-    el.aiKeySheet = $("#aikey-sheet");
-    el.aiKeyInput = $("#ai-key-input");
   }
 
   // ---- Posición inicial estándar ------------------------------------------
@@ -283,8 +274,6 @@
     state.lastMove = null;
     state.locked = false;
     state.flipped = opening.color === "black";
-    state.aiHistory = [];
-    el.coachAsk.classList.add("is-hidden"); // el cajón de pregunta libre empieza plegado
     el.btnMode.textContent = state.guided ? "Guiado" : "Memoria";
     let tag;
     if (phase === "learn") {
@@ -758,136 +747,11 @@
   function prevStep() { gotoStep(state.step - 1); }
 
   // =========================================================================
-  // ENTRENADOR IA
-  // =========================================================================
-  function aiContext() {
-    return {
-      openingName: state.opening.name,
-      variationName: state.variation.name,
-      color: state.opening.color,
-      moves: state.variation.moves,
-      step: state.step
-    };
-  }
-
-  // Entrenador INTEGRADO (sin descargar ni configurar nada): responde las
-  // preguntas comunes con el conocimiento ya incluido (el porqué y el plan).
-  function norm(s) {
-    return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  }
-  function localAnswer(q) {
-    const t = norm(q);
-    const ms = moves();
-    const relMove = ms[state.step] || ms[state.step - 1];
-    const plan = `El plan de esta línea («${state.variation.name}») es: ${state.variation.blurb}`;
-
-    // ¿Por qué / idea / plan?
-    if (/(por ?que|para ?que|\bidea\b|\bplan\b|sentido|objetivo)/.test(t)) {
-      const why = relMove && relMove.text ? relMove.text.replace(/^Entramos en .*?\. /, "") : "";
-      return (why ? why + " " : "") + plan + ".";
-    }
-    // ¿Qué juego ahora / cuál es la jugada?
-    if (/(que (juego|hago|toca|sigue)|cual.*(jugada|movimiento)|siguiente jugada|ahora que)/.test(t)) {
-      const next = ms[state.step];
-      if (!next) return "Hemos llegado al final de la línea. ¡Bien hecho!";
-      if (next.by !== "user") return "Le toca al rival; espera su jugada y seguimos.";
-      if (!state.guided) return "Estás repasando de memoria 😉 Intenta recordar la jugada; si te atascas, pulsa 💡 Pista.";
-      return next.hint || next.text;
-    }
-    // ¿Y si el rival juega otra cosa?
-    if (/(y si|que pasa si|si el rival|si juega|otra (jugada|respuesta|cosa)|responde distinto|diferente)/.test(t)) {
-      return `Esta variación («${state.variation.name}») es nuestra respuesta concreta a esa jugada del rival. ` +
-        "Si el rival juega otra cosa, lo cubren las demás variaciones del curso (⚙️ → Ver todas las variaciones).";
-    }
-    // ¿Qué apertura es?
-    if (/(que apertura|como se llama|nombre de)/.test(t)) {
-      return `Estamos en ${state.opening.name} — variante «${state.variation.name}». ${plan}.`;
-    }
-    return null;
-  }
-
-  // Respuestas rápidas de un toque (chips bajo la burbuja): sin escribir nada.
-  function quickAnswer(kind) {
-    const ms = moves();
-    const plan = `El plan de «${state.variation.name}» es: ${state.variation.blurb}`;
-    if (kind === "plan") return plan + ".";
-    if (kind === "rival") {
-      return "Esta línea es nuestra respuesta concreta a lo que jugó el rival. " +
-        "Si responde otra cosa, lo cubren las demás variaciones del curso (⚙️ → Ver todas las variaciones).";
-    }
-    // "why": el porqué de la jugada actual (o de la última si le toca al rival).
-    let m = ms[state.step] && ms[state.step].by === "user" ? ms[state.step] : ms[state.step - 1];
-    if (!m) m = ms[state.step] || ms[ms.length - 1];
-    if (m && m.by === "user" && m === ms[state.step] && !state.guided) {
-      // En fase de memoria no revelamos la jugada pendiente.
-      return "De memoria 😉 Primero intenta recordarla; si te atascas, 💡 Pista te la enseña.";
-    }
-    return (m && m.text ? m.text + " " : "") + plan + ".";
-  }
-
-  // El alumno le pregunta al entrenador; la respuesta sale EN LA MISMA burbuja.
-  async function askCoach(text) {
-    if (state.aiBusy) return;
-    // 1) Respuesta integrada (instantánea, sin descargar ni configurar nada).
-    const built = localAnswer(text);
-    if (built) { setCoach(built, "talk"); return; }
-    // 2) Si la pregunta es libre y NO hay IA configurada, no obligamos a nada.
-    if (!window.CoachAI.hasAI()) {
-      setCoach("Te explico cada jugada y su plan automáticamente 🙂. Para preguntas libres puedo usar una IA opcional: actívala en ⚙️ → Entrenador IA.", "talk");
-      return;
-    }
-    // 3) Hay IA configurada (local o con clave): la usamos.
-    state.aiBusy = true;
-    state.aiHistory.push({ role: "user", content: text });
-    setCoach("Pensando…", "think");
-    const onProgress = (msg) => setCoach(msg || "Descargando la IA (solo la primera vez)…", "think");
-    try {
-      const reply = await window.CoachAI.ask(state.aiHistory, aiContext(), onProgress);
-      state.aiHistory.push({ role: "assistant", content: reply });
-      setCoach(reply, "talk");
-    } catch (err) {
-      let msg;
-      if (err.code === "NO_WEBGPU") msg = "Tu navegador no soporta la IA local. Añade una clave gratis de Gemini en ⚙️ → Entrenador IA.";
-      else if (err.status === 401 || err.status === 403) msg = "La clave no es válida. Revísala en ⚙️ → Entrenador IA.";
-      else if (err.status === 429) msg = "Vamos rápido 😅 Espera un momento y prueba otra vez.";
-      else msg = "Ups, no pude responder: " + err.message;
-      setCoach(msg, "think");
-    } finally {
-      state.aiBusy = false;
-    }
-  }
-
-  // =========================================================================
   // EVENTOS DE UI
   // =========================================================================
   function bindEvents() {
     $("#btn-back").addEventListener("click", goHome);
     $("#btn-hint").addEventListener("click", showHint);
-
-    // Chips de pregunta rápida: un toque y el entrenador responde al instante.
-    el.coachChips.addEventListener("click", (e) => {
-      const btn = e.target.closest("[data-ask]");
-      if (!btn) return;
-      const kind = btn.dataset.ask;
-      if (kind === "free") {
-        // 💬 despliega (o pliega) el cajón de pregunta libre.
-        const hidden = el.coachAsk.classList.toggle("is-hidden");
-        if (!hidden) el.coachAskInput.focus();
-        return;
-      }
-      setCoach(quickAnswer(kind), "talk");
-    });
-
-    // Pregunta libre escrita (plegada por defecto tras el botón 💬).
-    el.coachAsk.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const t = el.coachAskInput.value.trim();
-      if (!t) return;
-      el.coachAskInput.value = "";
-      el.coachAskInput.blur();
-      el.coachAsk.classList.add("is-hidden");
-      askCoach(t);
-    });
 
     // Entrada del tablero: toque y arrastre con el dedo (Pointer Events).
     el.board.addEventListener("pointerdown", onPointerDown);
@@ -950,32 +814,6 @@
     $("#complete-home").addEventListener("click", () => {
       el.completeOverlay.classList.remove("is-open");
       goHome();
-    });
-
-    // Entrenador IA (avanzado): clave opcional desde Ajustes.
-    $("#set-aikey").addEventListener("click", () => {
-      el.settingsSheet.classList.remove("is-open");
-      el.aiKeyInput.value = window.CoachAI.getKey();
-      el.aiKeySheet.classList.add("is-open");
-    });
-    $("#ai-key-save").addEventListener("click", () => {
-      const k = el.aiKeyInput.value.trim();
-      if (!k) return;
-      window.CoachAI.setKey(k);
-      el.aiKeyInput.value = "";
-      el.aiKeySheet.classList.remove("is-open");
-      setCoach(`Listo, ahora el entrenador usa ${window.CoachAI.providerName()}. Pregúntame lo que quieras.`, "talk");
-    });
-    $("#ai-local-btn").addEventListener("click", () => {
-      if (!window.CoachAI.webgpuOK()) {
-        setCoach("Tu navegador no soporta la IA local (WebGPU). Prueba con Chrome/Edge actualizado, o usa una clave gratis de Gemini.", "think");
-        el.aiKeySheet.classList.remove("is-open");
-        return;
-      }
-      window.CoachAI.setKey("");
-      window.CoachAI.setMode("local");
-      el.aiKeySheet.classList.remove("is-open");
-      setCoach("IA gratis activada 🆓 Pregúntame lo que quieras; la primera respuesta tardará mientras se descarga el modelo.", "talk");
     });
   }
 
