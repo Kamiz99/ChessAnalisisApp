@@ -49,7 +49,9 @@
     locked: false,
     pieceNodes: {},     // id de pieza -> elemento DOM (para animar)
     selectable: null,   // casilla a resaltar en turno guiado
-    hint: null          // {from?, to?} resaltado de pista
+    hint: null,         // {from?, to?} resaltado de pista
+    missed: [],         // pasos fallados en fase de memoria (para reforzarlos)
+    drill: null         // práctica de refuerzo activa: { queue: [paso...], pos }
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -273,6 +275,8 @@
     state.hint = null;
     state.lastMove = null;
     state.locked = false;
+    state.missed = [];
+    state.drill = null;
     state.flipped = opening.color === "black";
     el.btnMode.textContent = state.guided ? "Guiado" : "Memoria";
     let tag;
@@ -549,8 +553,17 @@
   function commitUserMove(move) {
     flashPraise();
     animateMove(move);
-    state.step++;
     state.locked = true;
+    // En refuerzo no se sigue la línea: se pasa a la siguiente repetición.
+    if (state.drill) {
+      state.drill.pos++;
+      setTimeout(() => {
+        state.locked = false;
+        drillStep();
+      }, SLIDE_MS + 850);
+      return;
+    }
+    state.step++;
     // Deja ver el elogio un instante antes de pasar al siguiente mensaje.
     setTimeout(() => {
       state.locked = false;
@@ -631,6 +644,30 @@
   function wrongMove() {
     state.usedHelp = true; // un fallo rompe el "sin ayuda" de la fase de memoria
     state.selected = null;
+
+    // En fase de memoria, apunta el paso fallado: al acabar la línea se
+    // practicará aparte (refuerzo dirigido de la jugada concreta).
+    if (state.phase === "recall" && !state.guided && !state.drill) {
+      const mv = moves()[state.step];
+      if (mv && mv.by === "user" && !state.missed.includes(state.step)) {
+        state.missed.push(state.step);
+      }
+    }
+
+    // Durante el refuerzo, el fallo recibe corrección inmediata: se enseña la
+    // jugada y esa posición vuelve a la cola para salir otra vez sin ayuda.
+    if (state.drill) {
+      const m = moves()[state.step];
+      state.hint = moveSquares(m);
+      paintSquares();
+      setCoach("Esa no era. Mira, es esta 👇 La jugamos y la volveremos a practicar.", "think");
+      const times = state.drill.queue.filter((s) => s === state.step).length;
+      if (times < 4) state.drill.queue.push(state.step);
+      el.coachCard.classList.add("shake");
+      setTimeout(() => el.coachCard.classList.remove("shake"), 400);
+      return;
+    }
+
     if (state.guided) highlightFrom(moves()[state.step]); else paintSquares();
     setCoach(pick(NUDGE), "think");
     el.coachCard.classList.add("shake");
@@ -656,9 +693,72 @@
     }, Math.max(2200, readMs(text)));
   }
 
+  // ---- Refuerzo dirigido ---------------------------------------------------
+  // Si en la fase de memoria hubo fallos, al terminar la línea se practican
+  // APARTE esas jugadas concretas: dos rondas por jugada (todas una vez y
+  // luego todas otra vez, para dar un poco de espaciado). Volver a recuperar
+  // justo lo que falló es lo que mejor lo fija.
+  function startDrill(queue) {
+    state.drill = { queue, pos: 0 };
+    el.lessonName.textContent = `🔁 Refuerzo · ${state.variation.name}`;
+    drillStep();
+  }
+
+  function drillStep() {
+    const d = state.drill;
+    if (!d) return;
+    if (d.pos >= d.queue.length) {
+      // Refuerzo completado: retoma el cierre normal de la lección.
+      state.drill = null;
+      state.locked = true;
+      flashThenAdvance(
+        "¡Reforzada! 💪",
+        "Esa jugada ya no se nos escapa. Seguimos donde íbamos.",
+        () => finishLesson()
+      );
+      return;
+    }
+    // Coloca el tablero justo ANTES de la jugada fallada y pide recordarla.
+    const stepIdx = d.queue[d.pos];
+    const ms = moves();
+    state.board = initialBoard();
+    state.lastMove = null;
+    for (let i = 0; i < stepIdx; i++) applyMove(ms[i]);
+    state.step = stepIdx;
+    state.selected = null;
+    state.selectable = null;
+    state.hint = null;
+    state.locked = false;
+    renderBoard();
+    updateHud();
+    setCoach(
+      d.pos === 0
+        ? "Refuerzo 🔁 Aquí fue donde nos equivocamos. ¿Recuerdas nuestra jugada?"
+        : "Otra vez esta posición, para fijarla: ¿cuál es la jugada?",
+      "think"
+    );
+  }
+
   function finishLesson() {
     el.progressFill.style.width = "100%";
     state.locked = true;
+
+    // Antes de cerrar una fase de memoria con fallos: refuerzo dirigido de
+    // las jugadas concretas donde nos equivocamos (la app lo encadena sola).
+    if (state.phase === "recall" && state.missed.length) {
+      const missed = state.missed.slice().sort((a, b) => a - b);
+      state.missed = [];
+      const queue = missed.concat(missed); // dos rondas por jugada fallada
+      const what = missed.length === 1
+        ? "la jugada en la que nos equivocamos"
+        : `las ${missed.length} jugadas en las que nos equivocamos`;
+      flashThenAdvance(
+        "Vamos a reforzar 🔁",
+        `Antes de seguir, practicamos aparte ${what}: repetir justo lo que falló es lo que mejor lo graba.`,
+        () => startDrill(queue)
+      );
+      return;
+    }
 
     const op = state.opening, v = state.variation;
     const total = op.variations.length;
@@ -719,7 +819,9 @@
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
   // ---- Navegación entre pasos (flechas) -----------------------------------
+  // Desactivada durante el refuerzo: allí se practica una posición concreta.
   function gotoStep(n) {
+    if (state.drill) return;
     const ms = moves();
     n = Math.max(0, Math.min(n, ms.length));
     state.board = initialBoard();
@@ -736,6 +838,7 @@
     runStep();
   }
   function nextStep() {
+    if (state.drill) return;
     const move = moves()[state.step];
     if (!move) return;
     applyMove(move);
