@@ -572,26 +572,36 @@
     }
   }
 
+  // El porqué de una jugada, sin el prefijo de entrada a la variación.
+  function moveWhy(move) {
+    return (move.text || "").replace(/^Entramos en «[^»]*»\.\s*/, "");
+  }
+
   // Confirma la jugada correcta del alumno (toque o arrastre): anima y avanza.
   function commitUserMove(move) {
-    flashPraise();
+    // Al aprender, la explicación ya estaba en pantalla: basta el elogio.
+    // De memoria y en refuerzo, el porqué llega DESPUÉS de recordar la jugada:
+    // feedback inmediato tras el esfuerzo de recuperación, que es cuando fija.
+    const why = (!state.guided || state.drill) ? moveWhy(move) : "";
+    const msg = why ? pick(PRAISE) + " " + why : pick(PRAISE);
+    setCoach(msg, "happy");
     animateMove(move);
     state.locked = true;
+    const wait = why ? readMs(msg) : SLIDE_MS + 850;
     // En refuerzo no se sigue la línea: se pasa a la siguiente repetición.
     if (state.drill) {
       state.drill.pos++;
       setTimeout(() => {
         state.locked = false;
         drillStep();
-      }, SLIDE_MS + 850);
+      }, wait);
       return;
     }
     state.step++;
-    // Deja ver el elogio un instante antes de pasar al siguiente mensaje.
     setTimeout(() => {
       state.locked = false;
       runStep();
-    }, SLIDE_MS + 850);
+    }, wait);
   }
 
   // ---- Arrastre de piezas con el dedo (Pointer Events) --------------------
@@ -683,7 +693,8 @@
       const m = moves()[state.step];
       state.hint = moveSquares(m);
       paintSquares();
-      setCoach("Esa no era. Mira, es esta 👇 La jugamos y la volveremos a practicar.", "think");
+      // La corrección llega con su porqué: ver el motivo ayuda a no repetir el fallo.
+      setCoach("Esa no era. Fíjate 👇 " + moveWhy(m), "think");
       const times = state.drill.queue.filter((s) => s === state.step).length;
       if (times < 4) state.drill.queue.push(state.step);
       el.coachCard.classList.add("shake");
@@ -696,7 +707,6 @@
     el.coachCard.classList.add("shake");
     setTimeout(() => el.coachCard.classList.remove("shake"), 400);
   }
-  function flashPraise() { setCoach(pick(PRAISE), "happy"); }
 
   // Overlay breve que se cierra solo y continúa (la app lleva las riendas:
   // el usuario no tiene que decidir si pasa de fase o de variación).
