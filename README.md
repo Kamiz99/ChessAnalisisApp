@@ -18,6 +18,11 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
   luego **De memoria ×2** (dos repeticiones sin ayuda; el entrenador no revela
   la jugada). Solo cuenta como «memorizada» tras repetirla dos veces sin ayuda.
   Es el *testing effect*, de los métodos mejor respaldados por la ciencia.
+- **Refuerzo dirigido de los fallos.** Si te equivocas en una jugada durante la
+  fase de memoria, al terminar la línea la app coloca el tablero justo antes de
+  esa jugada concreta y la practicas aparte, **dos rondas por jugada fallada**
+  (con corrección inmediata si vuelve a fallar). Reintentar exactamente lo que
+  falló es la forma más eficaz de fijarlo.
 - **Tono de entrenador.** La app habla en primera persona del plural
   («jugamos…», «buscamos…»), explicando la idea de cada jugada y terminando con
   el movimiento.

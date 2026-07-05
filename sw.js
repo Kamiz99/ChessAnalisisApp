@@ -1,5 +1,5 @@
 /* Service worker mínimo para uso offline e instalación como app. */
-const CACHE = "aperturas-v13";
+const CACHE = "aperturas-v14";
 const PIECES = ["wK","wQ","wR","wB","wN","wP","bK","bQ","bR","bB","bN","bP"]
   .map((p) => "assets/pieces/" + p + ".svg");
 const ASSETS = [
