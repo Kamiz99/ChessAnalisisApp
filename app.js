@@ -186,6 +186,16 @@
   // =========================================================================
   // PANTALLA DE INICIO
   // =========================================================================
+  // Color propio de cada curso (azulejo + su sombra "3D"), estilo Duolingo.
+  const COURSE_COLORS = {
+    london:       ["#58cc02", "#46a302"],
+    italian:      ["#1cb0f6", "#1899d6"],
+    ruylopez:     ["#ff4b4b", "#d33a3a"],
+    sicilian:     ["#ff9600", "#d17c00"],
+    queensgambit: ["#ce82ff", "#a968d6"],
+    kingsindian:  ["#2ec4b6", "#25a094"]
+  };
+
   function renderHome() {
     el.openingsList.innerHTML = "";
     OPENINGS.forEach((op, cardIdx) => {
@@ -198,6 +208,11 @@
       const card = document.createElement("button");
       card.className = "opening-card";
       card.style.animationDelay = (cardIdx * 55) + "ms"; // entrada escalonada
+      const cc = COURSE_COLORS[op.id];
+      if (cc) {
+        card.style.setProperty("--tile", cc[0]);
+        card.style.setProperty("--tile-sh", cc[1]);
+      }
       card.innerHTML = `
         <span class="opening-emoji">${op.emoji}</span>
         <span class="opening-info">
