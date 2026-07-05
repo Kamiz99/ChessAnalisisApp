@@ -461,7 +461,7 @@
   // (~45 ms por carácter ≈ ritmo de lectura tranquilo), con mínimo y máximo.
   function readMs(text) {
     const len = text ? text.length : 0;
-    return Math.max(1500, Math.min(5200, 600 + len * 45));
+    return Math.max(1500, Math.min(6000, 600 + len * 45));
   }
 
   // Mención breve de la jugada del rival para la burbuja del alumno: solo la

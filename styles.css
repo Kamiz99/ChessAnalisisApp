@@ -217,7 +217,7 @@ html, body {
   border-radius: 18px;
   padding: 12px 14px;
   margin-bottom: 14px;
-  height: 128px;   /* caben 5 líneas: el texto más largo a 390 px de ancho */
+  height: 184px;   /* cabe la burbuja fusionada más larga (242 chars) a 390 px */
   overflow: hidden;
 }
 .coach-card-avatar {
@@ -227,7 +227,7 @@ html, body {
   box-shadow: 0 3px 0 var(--green-sh);
 }
 .coach-card-text {
-  margin: 0; font-size: 14px; line-height: 1.45; font-weight: 600;
+  margin: 0; font-size: 13.5px; line-height: 1.42; font-weight: 600;
   flex: 1; align-self: stretch;
   overflow-y: auto; -webkit-overflow-scrolling: touch;
 }
