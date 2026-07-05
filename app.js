@@ -24,6 +24,14 @@
     "No pasa nada, lo intentamos de nuevo. El botón 💡 te da una pista.",
     "Esa jugada no toca aún. ¿La buscamos otra vez?"
   ];
+  // Celebración cuando una repetición de memoria sale PERFECTA (sin fallos
+  // ni ayuda): el refuerzo positivo también consolida el aprendizaje.
+  const PERFECT = [
+    "Toda la línea de memoria y sin un solo fallo, ¡impecable! 👏",
+    "Ni un error, ni una pista: así trabajan los maestros. 🧠",
+    "De memoria, del tirón y sin fallar ni una. ¡Enorme! 💜",
+    "Bordada: cada jugada en su sitio, sin ayuda. ¡Qué nivel! 🔥"
+  ];
   // En fase «de memoria» no revelamos la jugada: solo animamos a recordarla.
   const RECALL_PROMPTS = [
     "De memoria: ¿recuerdas la jugada? 🤔",
@@ -775,13 +783,17 @@
     }
 
     // Fase de memoria. Se repite DOS veces para fijarla mejor.
+    // «Perfecta» = sin fallos y sin pedir ayuda: se celebra por todo lo alto.
+    const clean = !state.usedHelp;
     const prev = getStatus(op.id, v.id);
     if (prev !== "recalled1") {
       // Completó la 1ª repetición → la app pasa SOLA a la 2ª.
       setStatus(op.id, v.id, "recalled1");
       flashThenAdvance(
-        "¡Una vez de memoria! 💪",
-        "Una más y queda grabada. La repetimos otra vez sin ayuda.",
+        clean ? "¡Perfecta! 🌟" : "¡Una vez de memoria! 💪",
+        clean
+          ? pick(PERFECT) + " Una repetición más y queda grabada para siempre."
+          : "Una más y queda grabada. La repetimos otra vez sin ayuda.",
         () => startLesson(op, state.courseIndex, "recall")
       );
       return;
@@ -795,7 +807,8 @@
       // Fin del curso: único punto donde se muestran botones.
       $("#complete-title").textContent = "🏆 ¡Curso completado!";
       el.completeText.textContent =
-        `¡Hemos memorizado las ${total} variaciones de ${op.name}! Un trabajo enorme. 🎉`;
+        (clean ? "¡Y esta última salió perfecta, sin un solo fallo! 🌟 " : "") +
+        `Hemos memorizado las ${total} variaciones de ${op.name}. Un trabajo enorme. 🎉`;
       const nextBtn = $("#complete-next");
       nextBtn.textContent = "Volver al inicio";
       nextBtn.style.display = "block";
@@ -807,11 +820,11 @@
     }
 
     // Sigue habiendo variaciones pendientes → la app avanza SOLA a la siguiente.
-    const clean = !state.usedHelp;
     const next = firstPending(op);
     flashThenAdvance(
-      clean ? "¡Memorizada, sin un fallo! ✅" : "¡Memorizada! ✅",
-      `Llevamos ${done} de ${total} en ${op.name}. Seguimos con la siguiente.`,
+      clean ? "¡Memorizada, perfecta! 🌟" : "¡Memorizada! ✅",
+      (clean ? pick(PERFECT) + " " : "") +
+        `Llevamos ${done} de ${total} en ${op.name}. Seguimos con la siguiente.`,
       () => startLesson(op, next.index, next.phase)
     );
   }
