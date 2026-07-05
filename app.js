@@ -464,21 +464,29 @@
     return Math.max(1500, Math.min(5200, 600 + len * 45));
   }
 
+  // Mención breve de la jugada del rival para la burbuja del alumno: solo la
+  // descripción (y la entrada a la variación si es la primera jugada), sin el
+  // comentario largo. Así el rival mueve rápido y todo va en UNA burbuja.
+  function rivalBrief(text) {
+    const t = text || "";
+    const keep = t.startsWith("Entramos") ? 2 : 1;
+    const parts = t.split(". ");
+    if (parts.length <= keep) return t;
+    return parts.slice(0, keep).join(". ") + ".";
+  }
+
   function runStep() {
     const ms = moves();
     if (state.step >= ms.length) return finishLesson();
 
     const move = ms[state.step];
     updateHud();
-    // En fase «de memoria» no revelamos la jugada del alumno: solo le animamos.
-    const coachText = (move.by === "user" && !state.guided) ? pick(RECALL_PROMPTS) : move.text;
-    setCoach(coachText, "talk");
 
     if (move.by === "engine") {
+      // El rival responde rápido y SIN burbuja propia: su jugada se menciona
+      // en la misma burbuja del siguiente turno del alumno.
       state.locked = true;
       clearHints();
-      // Pausa proporcional al texto (que dé tiempo de leerlo), luego anima la
-      // jugada y avanza al terminar el deslizamiento.
       setTimeout(() => {
         animateMove(move);
         state.step++;
@@ -486,12 +494,19 @@
           state.locked = false;
           runStep();
         }, SLIDE_MS + 120);
-      }, readMs(coachText));
-    } else {
-      state.locked = false;
-      state.selected = null;
-      if (state.guided) highlightFrom(move); else { clearHints(); }
+      }, 500);
+      return;
     }
+
+    // Turno del alumno: UNA sola burbuja con lo que acaba de hacer el rival
+    // y lo que toca ahora (o el reto de memoria, sin revelar la jugada).
+    const prev = ms[state.step - 1];
+    const nota = prev && prev.by === "engine" ? rivalBrief(prev.text) + " " : "";
+    const ahora = state.guided ? move.text : pick(RECALL_PROMPTS);
+    setCoach(nota + ahora, "talk");
+    state.locked = false;
+    state.selected = null;
+    if (state.guided) highlightFrom(move); else clearHints();
   }
 
   function updateHud() {

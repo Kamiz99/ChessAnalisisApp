@@ -62,11 +62,11 @@ puede plantear el rival (sin variaciones que se contradigan entre sí).
 
 El entrenador vive en la **misma burbuja** de la lección, sin botones extra:
 
-- **Cada jugada sale con su porqué — también las del rival.** El texto de cada
-  movimiento incluye la idea y el plan (explicaciones predefinidas), y las
-  jugadas del rival explican su intención («Las negras avanzan el peón a d5.
-  Ocupan su parte del centro…»). Todo al instante y offline; el constructor
-  avisa si alguna jugada se queda sin explicación.
+- **Una sola burbuja por turno.** El rival responde rápido y sin burbuja
+  propia: su jugada se menciona brevemente al inicio de la burbuja de tu turno,
+  seguida del porqué de tu jugada («Las negras avanzan el peón a d5. ¡La jugada
+  estrella del Londres! El alfil sale a f4…»). En fase de memoria y en el
+  refuerzo, el porqué llega como feedback justo después de acertar.
 - **Mensajes con tiempo de lectura.** Cada globo de texto permanece en pantalla
   un tiempo proporcional a su longitud antes de que la lección avance.
 - **Burbuja de altura fija.** Al cambiar el texto, el tablero y el resto de la
