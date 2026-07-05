@@ -464,17 +464,6 @@
     return Math.max(1500, Math.min(6000, 600 + len * 45));
   }
 
-  // Mención breve de la jugada del rival para la burbuja del alumno: solo la
-  // descripción (y la entrada a la variación si es la primera jugada), sin el
-  // comentario largo. Así el rival mueve rápido y todo va en UNA burbuja.
-  function rivalBrief(text) {
-    const t = text || "";
-    const keep = t.startsWith("Entramos") ? 2 : 1;
-    const parts = t.split(". ");
-    if (parts.length <= keep) return t;
-    return parts.slice(0, keep).join(". ") + ".";
-  }
-
   function runStep() {
     const ms = moves();
     if (state.step >= ms.length) return finishLesson();
@@ -483,8 +472,8 @@
     updateHud();
 
     if (move.by === "engine") {
-      // El rival responde rápido y SIN burbuja propia: su jugada se menciona
-      // en la misma burbuja del siguiente turno del alumno.
+      // El rival responde casi al instante y sin comentario alguno: su jugada
+      // se ve en el tablero (deslizamiento + casillas resaltadas) y ya.
       state.locked = true;
       clearHints();
       setTimeout(() => {
@@ -493,17 +482,20 @@
         setTimeout(() => {
           state.locked = false;
           runStep();
-        }, SLIDE_MS + 120);
-      }, 500);
+        }, SLIDE_MS + 80);
+      }, 200);
       return;
     }
 
-    // Turno del alumno: UNA sola burbuja con lo que acaba de hacer el rival
-    // y lo que toca ahora (o el reto de memoria, sin revelar la jugada).
+    // Turno del alumno: la burbuja trae solo NUESTRA jugada (o el reto de
+    // memoria). Única excepción: la entrada a la variación cuando la partida
+    // la abre el rival, para no perder el nombre de la línea.
     const prev = ms[state.step - 1];
-    const nota = prev && prev.by === "engine" ? rivalBrief(prev.text) + " " : "";
+    const intro = (prev && prev.by === "engine" && prev.text && prev.text.startsWith("Entramos"))
+      ? prev.text.split(". ")[0] + ". "
+      : "";
     const ahora = state.guided ? move.text : pick(RECALL_PROMPTS);
-    setCoach(nota + ahora, "talk");
+    setCoach(intro + ahora, "talk");
     state.locked = false;
     state.selected = null;
     if (state.guided) highlightFrom(move); else clearHints();

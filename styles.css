@@ -217,7 +217,7 @@ html, body {
   border-radius: 18px;
   padding: 12px 14px;
   margin-bottom: 14px;
-  height: 184px;   /* cabe la burbuja fusionada más larga (242 chars) a 390 px */
+  height: 168px;   /* cabe el texto más largo del repertorio (215 chars) a 390 px */
   overflow: hidden;
 }
 .coach-card-avatar {
