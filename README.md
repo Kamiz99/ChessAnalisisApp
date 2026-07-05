@@ -93,7 +93,7 @@ Abre `http://localhost:8000` (mejor en la vista móvil del navegador).
 
 ```
 index.html     Pantallas (inicio + lección) y hojas (variaciones, ajustes)
-styles.css     Estilos mobile-first, tema oscuro
+styles.css     Estilos mobile-first, tema claro tipo Duolingo
 app.js         Motor de la lección, tablero y navegación
 openings.js    Datos de aperturas, variaciones y textos del entrenador
 sw.js          Service worker (offline / instalación)
