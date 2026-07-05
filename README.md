@@ -62,11 +62,11 @@ puede plantear el rival (sin variaciones que se contradigan entre sí).
 
 El entrenador vive en la **misma burbuja** de la lección, sin botones extra:
 
-- **Una sola burbuja por turno.** El rival responde rápido y sin burbuja
-  propia: su jugada se menciona brevemente al inicio de la burbuja de tu turno,
-  seguida del porqué de tu jugada («Las negras avanzan el peón a d5. ¡La jugada
-  estrella del Londres! El alfil sale a f4…»). En fase de memoria y en el
-  refuerzo, el porqué llega como feedback justo después de acertar.
+- **Sin comentarios del rival.** Sus jugadas se ejecutan casi al instante
+  (200 ms) y se ven en el tablero (deslizamiento + casillas resaltadas), sin
+  texto alguno. La burbuja es solo para lo que importa: el porqué detallado de
+  TU jugada. En fase de memoria y en el refuerzo, ese porqué llega como
+  feedback justo después de acertar.
 - **Mensajes con tiempo de lectura.** Cada globo de texto permanece en pantalla
   un tiempo proporcional a su longitud antes de que la lección avance.
 - **Burbuja de altura fija.** Al cambiar el texto, el tablero y el resto de la
