@@ -1,5 +1,5 @@
 /* Service worker mínimo para uso offline e instalación como app. */
-const CACHE = "aperturas-v24";
+const CACHE = "aperturas-v25";
 const PIECES = ["wK","wQ","wR","wB","wN","wP","bK","bQ","bR","bB","bN","bP"]
   .map((p) => "assets/pieces/" + p + ".svg");
 const ASSETS = [
@@ -28,8 +28,11 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
-  // Solo gestionamos peticiones de la propia app.
-  if (new URL(e.request.url).origin !== self.location.origin) return;
+  // Solo gestionamos peticiones de la propia app; /api/ (sincronización)
+  // va siempre directa a la red.
+  const u = new URL(e.request.url);
+  if (u.origin !== self.location.origin) return;
+  if (u.pathname.startsWith("/api/")) return;
   e.respondWith(
     caches.match(e.request).then((hit) => hit || fetch(e.request))
   );

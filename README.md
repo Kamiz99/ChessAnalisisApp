@@ -81,6 +81,22 @@ El entrenador vive en la **misma burbuja** de la lección, sin botones extra:
 - **Burbuja de altura fija.** Al cambiar el texto, el tablero y el resto de la
   pantalla no se mueven.
 
+## ☁️ Sincronización entre dispositivos (opcional, gratis)
+
+Sin cuentas ni contraseñas: una **clave personal** (tipo `torre-azul-a1b2`)
+identifica tu progreso. En ⚙️ → **Sincronización** creas la clave en un
+dispositivo y la introduces en los demás; al abrir la app el progreso se
+descarga, se **combina** (siempre gana el avance mayor) y se sube solo.
+
+Para activarla hace falta la base de datos gratuita (una sola vez):
+1. En [vercel.com](https://vercel.com) abre tu proyecto → pestaña **Storage**.
+2. **Create Database / Marketplace → Upstash for Redis** (plan gratuito) →
+   **Connect** al proyecto. Esto añade solas las variables
+   `KV_REST_API_URL` / `KV_REST_API_TOKEN` (o `UPSTASH_REDIS_REST_*`).
+3. Redespliega (Deployments → ⋯ → Redeploy). Listo: `api/sync.js` ya funciona.
+
+Sin esa base de datos, la app funciona igual que siempre (progreso local).
+
 ## 🚀 Cómo ejecutarla en tu teléfono
 
 ### Opción A — Vercel (recomendada, gratis)
@@ -105,6 +121,7 @@ index.html     Pantallas (inicio + lección) y hojas (variaciones, ajustes)
 styles.css     Estilos mobile-first, tema claro tipo Duolingo
 app.js         Motor de la lección, tablero y navegación
 openings.js    Datos de aperturas, variaciones y textos del entrenador
+api/sync.js    Función de Vercel: sincronización del progreso (Upstash Redis)
 sw.js          Service worker (offline / instalación)
 manifest.json  Manifiesto PWA
 icon.svg       Icono de la app

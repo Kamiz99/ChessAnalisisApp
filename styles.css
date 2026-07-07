@@ -477,6 +477,25 @@ html, body {
 
 .btn-big { width: 100%; padding: 15px; border-radius: 14px; font-size: 15px; margin-bottom: 10px; }
 
+/* =========================================================================
+ * SINCRONIZACIÓN
+ * ========================================================================= */
+.sync-btn { display: block; width: 100%; margin-bottom: 10px; }
+.sync-or { text-align: center; color: var(--text-dim); font-size: 12px; font-weight: 700; margin: 14px 0 10px; }
+.sync-input {
+  width: 100%; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line);
+  background: #fff; color: var(--text); font-size: 15px; font-weight: 700;
+  font-family: ui-monospace, Menlo, monospace; margin-bottom: 10px;
+}
+.sync-input:focus { outline: none; border-color: var(--blue); }
+.sync-note { font-size: 12px; color: var(--text-mid); line-height: 1.45; font-weight: 600; margin: 8px 0 12px; }
+.sync-key-display {
+  text-align: center; font-family: ui-monospace, Menlo, monospace;
+  font-size: 20px; font-weight: 800; letter-spacing: .5px; color: var(--text);
+  background: #f2fbea; border: 2px dashed var(--green); border-radius: 12px;
+  padding: 14px; margin: 0 0 10px;
+}
+
 /* ---- Accesibilidad: menos movimiento ------------------------------------ */
 @media (prefers-reduced-motion: reduce) {
   .pc { transition: none; }
