@@ -59,8 +59,16 @@
     selectable: null,   // casilla a resaltar en turno guiado
     hint: null,         // {from?, to?} resaltado de pista
     missed: [],         // pasos fallados en fase de memoria (para reforzarlos)
-    drill: null         // práctica de refuerzo activa: { queue: [paso...], pos }
+    drill: null,        // práctica de refuerzo activa: { queue: [paso...], pos }
+    flowTimer: null     // temporizador del flujo (rival/elogio); se cancela al navegar
   };
+
+  // Programa el siguiente paso del flujo cancelando el anterior: evita que una
+  // jugada del rival «en vuelo» se aplique dos veces si el alumno navega.
+  function setFlow(fn, ms) {
+    clearTimeout(state.flowTimer);
+    state.flowTimer = setTimeout(fn, ms);
+  }
 
   const $ = (sel) => document.querySelector(sel);
   const el = {};
@@ -83,6 +91,7 @@
     el.variationsList = $("#variations-list");
     el.completeOverlay = $("#complete-overlay");
     el.completeText = $("#complete-text");
+    el.reviewCard = $("#review-card");
   }
 
   // ---- Posición inicial estándar ------------------------------------------
@@ -183,6 +192,81 @@
     return { index: 0, phase: "learn" };
   }
 
+  // ---- Repaso espaciado (localStorage) -------------------------------------
+  // Cada variación memorizada entra en la agenda de repasos: 1 → 3 → 7 → 21
+  // días. Repaso limpio: sube de caja (más intervalo). Con fallos o ayuda:
+  // vuelve a la caja 1 (repaso mañana). Es el «spacing effect»: repasar justo
+  // antes de olvidar convierte la memoria de corto plazo en permanente.
+  const REVIEW_KEY = "aperturas_repasos";
+  const REVIEW_DAYS = [1, 3, 7, 21];
+  const DAY_MS = 86400000;
+  function loadReviews() {
+    try { return JSON.parse(localStorage.getItem(REVIEW_KEY)) || {}; }
+    catch (e) { return {}; }
+  }
+  function saveReviews(r) {
+    try { localStorage.setItem(REVIEW_KEY, JSON.stringify(r)); } catch (e) {}
+  }
+  function scheduleFirstReview(opId, varId) {
+    const r = loadReviews();
+    const k = opId + ":" + varId;
+    if (!r[k]) { r[k] = { box: 0, due: Date.now() + DAY_MS }; saveReviews(r); }
+  }
+  function updateReview(opId, varId, clean) {
+    const r = loadReviews();
+    const k = opId + ":" + varId;
+    const box = clean ? Math.min(((r[k] && r[k].box) || 0) + 1, REVIEW_DAYS.length - 1) : 0;
+    r[k] = { box, due: Date.now() + REVIEW_DAYS[box] * DAY_MS };
+    saveReviews(r);
+    return REVIEW_DAYS[box];
+  }
+  // Da agenda a lo que se memorizó antes de existir el repaso espaciado.
+  function ensureReviewEntries() {
+    const r = loadReviews();
+    let changed = false;
+    OPENINGS.forEach((op) => {
+      const m = statusMap(op.id);
+      op.variations.forEach((v) => {
+        const k = op.id + ":" + v.id;
+        if (m[v.id] === "memorized" && !r[k]) {
+          r[k] = { box: 0, due: Date.now() + DAY_MS };
+          changed = true;
+        }
+      });
+    });
+    if (changed) saveReviews(r);
+  }
+  // Variaciones con repaso vencido, las más atrasadas primero.
+  function dueReviews() {
+    const r = loadReviews();
+    const out = [];
+    OPENINGS.forEach((op) => {
+      const m = statusMap(op.id);
+      op.variations.forEach((v, i) => {
+        const e = r[op.id + ":" + v.id];
+        if (m[v.id] === "memorized" && e && e.due <= Date.now()) {
+          out.push({ op, index: i, due: e.due });
+        }
+      });
+    });
+    return out.sort((a, b) => a.due - b.due);
+  }
+  function startReviewSession() {
+    const due = dueReviews();
+    if (due.length) startLesson(due[0].op, due[0].index, "review");
+  }
+
+  // Partida de repertorio: el rival elige al azar una línea memorizada y el
+  // alumno responde de memoria SIN saber cuál es (práctica de transferencia:
+  // reconocer la posición, como en una partida real).
+  function startGame(op) {
+    const m = statusMap(op.id);
+    const pool = [];
+    op.variations.forEach((v, i) => { if (m[v.id] === "memorized") pool.push(i); });
+    if (!pool.length) return;
+    startLesson(op, pool[Math.floor(Math.random() * pool.length)], "game");
+  }
+
   // =========================================================================
   // PANTALLA DE INICIO
   // =========================================================================
@@ -197,6 +281,16 @@
   };
 
   function renderHome() {
+    // Tarjeta de repaso espaciado (solo si hay repasos vencidos).
+    ensureReviewEntries();
+    const due = dueReviews();
+    el.reviewCard.hidden = due.length === 0;
+    if (due.length) {
+      $("#review-sub").textContent = due.length === 1
+        ? "1 variación espera tu repaso de memoria"
+        : `${due.length} variaciones esperan tu repaso de memoria`;
+    }
+
     el.openingsList.innerHTML = "";
     OPENINGS.forEach((op, cardIdx) => {
       const total = op.variations.length;
@@ -229,6 +323,15 @@
         <span class="opening-go">›</span>`;
       card.addEventListener("click", () => startCourse(op));
       el.openingsList.appendChild(card);
+
+      // Con 2+ líneas memorizadas se desbloquea la partida de repertorio.
+      if (done >= 2) {
+        const gb = document.createElement("button");
+        gb.className = "game-btn";
+        gb.textContent = "⚔️ Partida de repertorio — el rival elige la línea";
+        gb.addEventListener("click", () => startGame(op));
+        el.openingsList.appendChild(gb);
+      }
     });
   }
 
@@ -275,6 +378,8 @@
   // Vuelve al inicio refrescando las barras de progreso de cada curso.
   function goHome() {
     el.completeOverlay.classList.remove("is-open");
+    clearTimeout(state.flowTimer);
+    clearTimeout(flashTimer);
     renderHome();
     showScreen("home");
   }
@@ -282,9 +387,11 @@
   // =========================================================================
   // LECCIÓN
   // =========================================================================
+  // Fases: "learn" (con ayuda) | "recall" (memoria del curso) |
+  // "review" (repaso espaciado) | "game" (partida de repertorio).
   function startLesson(opening, index, phase) {
     index = Math.max(0, Math.min(index, opening.variations.length - 1));
-    phase = phase === "recall" ? "recall" : "learn";
+    phase = (phase === "recall" || phase === "review" || phase === "game") ? phase : "learn";
     state.opening = opening;
     state.courseIndex = index;
     state.variation = opening.variations[index];
@@ -300,17 +407,24 @@
     state.locked = false;
     state.missed = [];
     state.drill = null;
+    clearTimeout(state.flowTimer);
     state.flipped = opening.color === "black";
     el.btnMode.textContent = state.guided ? "Guiado" : "Memoria";
     let tag;
     if (phase === "learn") {
       tag = "🟢 Aprender";
+    } else if (phase === "review") {
+      tag = "📅 Repaso";
+    } else if (phase === "game") {
+      tag = "⚔️ Partida";
     } else {
       const passNo = getStatus(opening.id, state.variation.id) === "recalled1" ? 2 : 1;
       tag = `🧠 De memoria (${passNo}/2)`;
     }
-    el.lessonName.textContent =
-      `${tag} · ${index + 1}/${opening.variations.length} · ${state.variation.name}`;
+    // En partida NO se revela qué línea eligió el rival: esa es la gracia.
+    el.lessonName.textContent = phase === "game"
+      ? `${tag} · ${opening.name}`
+      : `${tag} · ${index + 1}/${opening.variations.length} · ${state.variation.name}`;
     showScreen("lesson");
     buildBoardGrid();
     renderBoard();
@@ -476,10 +590,10 @@
       // se ve en el tablero (deslizamiento + casillas resaltadas) y ya.
       state.locked = true;
       clearHints();
-      setTimeout(() => {
+      setFlow(() => {
         animateMove(move);
         state.step++;
-        setTimeout(() => {
+        setFlow(() => {
           state.locked = false;
           runStep();
         }, SLIDE_MS + 80);
@@ -489,9 +603,11 @@
 
     // Turno del alumno: la burbuja trae solo NUESTRA jugada (o el reto de
     // memoria). Única excepción: la entrada a la variación cuando la partida
-    // la abre el rival, para no perder el nombre de la línea.
+    // la abre el rival, para no perder el nombre de la línea (salvo en
+    // partida de repertorio, donde la línea es secreta).
     const prev = ms[state.step - 1];
-    const intro = (prev && prev.by === "engine" && prev.text && prev.text.startsWith("Entramos"))
+    const intro = (state.phase !== "game" && prev && prev.by === "engine" &&
+                   prev.text && prev.text.startsWith("Entramos"))
       ? prev.text.split(". ")[0] + ". "
       : "";
     const ahora = state.guided ? move.text : pick(RECALL_PROMPTS);
@@ -587,9 +703,10 @@
   // Confirma la jugada correcta del alumno (toque o arrastre): anima y avanza.
   function commitUserMove(move) {
     // Al aprender, la explicación ya estaba en pantalla: basta el elogio.
-    // De memoria y en refuerzo, el porqué llega DESPUÉS de recordar la jugada:
-    // feedback inmediato tras el esfuerzo de recuperación, que es cuando fija.
-    const why = (!state.guided || state.drill) ? moveWhy(move) : "";
+    // De memoria, en repaso y en refuerzo, el porqué llega DESPUÉS de recordar
+    // la jugada: feedback tras el esfuerzo de recuperación, que es cuando fija.
+    // En partida de repertorio no: ritmo de partida, elogio corto y seguimos.
+    const why = (state.drill || (!state.guided && state.phase !== "game")) ? moveWhy(move) : "";
     const msg = why ? pick(PRAISE) + " " + why : pick(PRAISE);
     setCoach(msg, "happy");
     animateMove(move);
@@ -598,14 +715,14 @@
     // En refuerzo no se sigue la línea: se pasa a la siguiente repetición.
     if (state.drill) {
       state.drill.pos++;
-      setTimeout(() => {
+      setFlow(() => {
         state.locked = false;
         drillStep();
       }, wait);
       return;
     }
     state.step++;
-    setTimeout(() => {
+    setFlow(() => {
       state.locked = false;
       runStep();
     }, wait);
@@ -685,9 +802,9 @@
     state.usedHelp = true; // un fallo rompe el "sin ayuda" de la fase de memoria
     state.selected = null;
 
-    // En fase de memoria, apunta el paso fallado: al acabar la línea se
-    // practicará aparte (refuerzo dirigido de la jugada concreta).
-    if (state.phase === "recall" && !state.guided && !state.drill) {
+    // En fase de memoria o repaso, apunta el paso fallado: al acabar la línea
+    // se practicará aparte (refuerzo dirigido de la jugada concreta).
+    if ((state.phase === "recall" || state.phase === "review") && !state.guided && !state.drill) {
       const mv = moves()[state.step];
       if (mv && mv.by === "user" && !state.missed.includes(state.step)) {
         state.missed.push(state.step);
@@ -783,9 +900,9 @@
     el.progressFill.style.width = "100%";
     state.locked = true;
 
-    // Antes de cerrar una fase de memoria con fallos: refuerzo dirigido de
-    // las jugadas concretas donde nos equivocamos (la app lo encadena sola).
-    if (state.phase === "recall" && state.missed.length) {
+    // Antes de cerrar una fase de memoria o repaso con fallos: refuerzo
+    // dirigido de las jugadas concretas donde nos equivocamos.
+    if ((state.phase === "recall" || state.phase === "review") && state.missed.length) {
       const missed = state.missed.slice().sort((a, b) => a - b);
       state.missed = [];
       const queue = missed.concat(missed); // dos rondas por jugada fallada
@@ -802,6 +919,54 @@
 
     const op = state.opening, v = state.variation;
     const total = op.variations.length;
+
+    // Partida de repertorio: no toca el progreso del curso; se revela por fin
+    // qué línea eligió el rival y se ofrece otra partida.
+    if (state.phase === "game") {
+      const limpia = !state.usedHelp;
+      $("#complete-title").textContent = limpia ? "⚔️ ¡Partida impecable!" : "⚔️ Partida completada";
+      el.completeText.textContent = `El rival eligió «${v.name}» y ` +
+        (limpia
+          ? "respondiste toda la línea de memoria, sin un solo fallo. 🏆"
+          : "llegamos al final. Con un par de repasos saldrá sin ayudas.");
+      const nextBtn = $("#complete-next");
+      nextBtn.textContent = "Otra partida ▶";
+      nextBtn.style.display = "block";
+      const actions = document.querySelector(".overlay-actions");
+      if (actions) actions.style.display = "flex";
+      state.onNext = () => startGame(op);
+      el.completeOverlay.classList.add("is-open");
+      return;
+    }
+
+    // Repaso espaciado: actualiza la agenda y encadena el siguiente vencido.
+    if (state.phase === "review") {
+      const limpia = !state.usedHelp;
+      const days = updateReview(op.id, v.id, limpia);
+      const cuando = days === 1 ? "mañana" : `en ${days} días`;
+      const msg = limpia
+        ? `${pick(PERFECT)} Próximo repaso de esta línea: ${cuando}.`
+        : "Hubo tropiezos, así que esta línea vuelve mañana para fijarla mejor.";
+      const rest = dueReviews();
+      if (rest.length) {
+        flashThenAdvance(
+          limpia ? "¡Repasada, perfecta! 🌟" : "¡Repasada! ✅",
+          msg + ` Seguimos: ${rest.length === 1 ? "queda 1 repaso" : `quedan ${rest.length} repasos`} por hoy.`,
+          () => startLesson(rest[0].op, rest[0].index, "review")
+        );
+      } else {
+        $("#complete-title").textContent = "🎉 ¡Repasos al día!";
+        el.completeText.textContent = msg + " No queda nada pendiente por hoy.";
+        const nextBtn = $("#complete-next");
+        nextBtn.textContent = "Volver al inicio";
+        nextBtn.style.display = "block";
+        const actions = document.querySelector(".overlay-actions");
+        if (actions) actions.style.display = "none";
+        state.onNext = () => goHome();
+        el.completeOverlay.classList.add("is-open");
+      }
+      return;
+    }
 
     if (state.phase === "learn") {
       // Aprendida con ayuda → la app pasa SOLA a la primera repetición de memoria.
@@ -831,8 +996,9 @@
       return;
     }
 
-    // 2ª repetición superada → memorizada.
+    // 2ª repetición superada → memorizada, y entra en la agenda de repasos.
     setStatus(op.id, v.id, "memorized");
+    scheduleFirstReview(op.id, v.id);
     const done = memorizedCount(op);
 
     if (done >= total) {
@@ -867,6 +1033,7 @@
   // Desactivada durante el refuerzo: allí se practica una posición concreta.
   function gotoStep(n) {
     if (state.drill) return;
+    clearTimeout(state.flowTimer); // cancela jugadas del rival «en vuelo»
     const ms = moves();
     n = Math.max(0, Math.min(n, ms.length));
     state.board = initialBoard();
@@ -884,6 +1051,7 @@
   }
   function nextStep() {
     if (state.drill) return;
+    clearTimeout(state.flowTimer); // cancela jugadas del rival «en vuelo»
     const move = moves()[state.step];
     if (!move) return;
     applyMove(move);
@@ -900,6 +1068,7 @@
   function bindEvents() {
     $("#btn-back").addEventListener("click", goHome);
     $("#btn-hint").addEventListener("click", showHint);
+    el.reviewCard.addEventListener("click", startReviewSession);
 
     // Entrada del tablero: toque y arrastre con el dedo (Pointer Events).
     el.board.addEventListener("pointerdown", onPointerDown);
@@ -909,7 +1078,7 @@
 
     $("#btn-mode").addEventListener("click", () => {
       state.guided = !state.guided;
-      if (state.guided && state.phase === "recall") state.usedHelp = true; // activar ayuda en memoria cuenta
+      if (state.guided && state.phase !== "learn") state.usedHelp = true; // activar ayuda fuera de aprender cuenta
       el.btnMode.textContent = state.guided ? "Guiado" : "Memoria";
       el.btnMode.setAttribute("aria-pressed", String(!state.guided));
       clearHints();

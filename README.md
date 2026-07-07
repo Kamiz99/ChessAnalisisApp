@@ -23,6 +23,15 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
   esa jugada concreta y la practicas aparte, **dos rondas por jugada fallada**
   (con corrección inmediata si vuelve a fallar). Reintentar exactamente lo que
   falló es la forma más eficaz de fijarlo.
+- **Repaso espaciado.** Cada variación memorizada entra en una agenda de
+  repasos con intervalos crecientes (1 → 3 → 7 → 21 días). Cuando hay repasos
+  vencidos, el inicio muestra la tarjeta **«📅 Repaso del día»**: se repasan de
+  memoria, encadenados; un repaso limpio alarga el intervalo y uno con fallos
+  lo devuelve a 1 día (*spacing effect*).
+- **⚔️ Partida de repertorio.** Con 2+ líneas memorizadas de una apertura se
+  desbloquea la partida: el rival elige **al azar** una de tus líneas y
+  respondes de memoria **sin saber cuál es**, como en una partida real. Al
+  final se revela la línea y puedes jugar otra (práctica de transferencia).
 - **Tono de entrenador.** La app habla en primera persona del plural
   («jugamos…», «buscamos…»), explicando la idea de cada jugada y terminando con
   el movimiento.
