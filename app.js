@@ -438,6 +438,11 @@
     for (let i = 0; i < 64; i++) {
       const cell = document.createElement("div");
       cell.className = "sq";
+      // Capa propia para los efectos (punto pulsante, destino iluminado):
+      // así no chocan con los ::before/::after de las coordenadas.
+      const fx = document.createElement("i");
+      fx.className = "fx";
+      cell.appendChild(fx);
       el.board.appendChild(cell);
     }
     el.piecesLayer = document.createElement("div");
