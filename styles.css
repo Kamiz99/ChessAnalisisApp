@@ -356,20 +356,20 @@ html, body {
   50%      { filter: drop-shadow(0 0 7px rgba(28,176,246,0.95)); }
 }
 
-/* Resaltados (azul = interacción, amarillo = última jugada / destino) */
+/* Resaltados (azul = interacción, amarillo = última jugada / destino).
+ * Van en la capa .fx propia de cada casilla, NUNCA en ::before/::after,
+ * que están reservados para las letras/números de las coordenadas. */
+.sq .fx { position: absolute; inset: 0; pointer-events: none; }
 .sq.last { box-shadow: inset 0 0 0 100px rgba(255, 200, 0, 0.35); }
 .sq.selected { box-shadow: inset 0 0 0 4px var(--blue); }
-.sq.selectable::after {
-  content: ""; position: absolute; inset: 22%;
+.sq.selectable .fx {
+  inset: 22%;
   border-radius: 50%;
   background: rgba(28, 176, 246, 0.55);
   animation: pulse 1.4s ease-in-out infinite;
 }
 .sq.hint-from { box-shadow: inset 0 0 0 4px var(--blue); }
-.sq.hint-to::after {
-  content: ""; position: absolute; inset: 0;
-  background: rgba(255, 200, 0, 0.5);
-}
+.sq.hint-to .fx { background: rgba(255, 200, 0, 0.5); }
 @keyframes pulse { 0%,100% { transform: scale(1); opacity: .9; } 50% { transform: scale(.7); opacity: .5; } }
 
 /* Barra de herramientas inferior */
