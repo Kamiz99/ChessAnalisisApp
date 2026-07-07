@@ -295,10 +295,16 @@
     OPENINGS.forEach((op, cardIdx) => {
       const total = op.variations.length;
       const done = memorizedCount(op);
-      const pct = Math.round((done / total) * 100);
-      const cta = done === 0 ? "Empezar curso"
-        : done >= total ? "¡Curso completado! Repasar"
-        : "Continuar curso";
+      // La barra refleja TODO el avance, no solo lo memorizado: cada variación
+      // aporta según su fase (aprendida ⅓, 1ª memoria ⅔, memorizada 3/3).
+      // Así, aprender una línea ya se ve al volver al inicio.
+      const m = statusMap(op.id);
+      const rank = op.variations.reduce(
+        (s, v) => s + (STATUS_RANK[m[v.id] || ""] || 0), 0);
+      const pct = Math.round((rank / (3 * total)) * 100);
+      const cta = done >= total ? "¡Curso completado! Repasar"
+        : rank > 0 ? "Continuar curso"
+        : "Empezar curso";
       const card = document.createElement("button");
       card.className = "opening-card";
       card.style.animationDelay = (cardIdx * 55) + "ms"; // entrada escalonada
@@ -1146,6 +1152,12 @@
     cacheDom();
     renderHome();
     bindEvents();
+
+    // Pide almacenamiento persistente: evita que el sistema borre el progreso
+    // (localStorage) en limpiezas automáticas de datos web del móvil.
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist().catch(() => {});
+    }
 
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
