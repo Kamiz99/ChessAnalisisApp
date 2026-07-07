@@ -97,6 +97,33 @@
       </div>
     </div>
 
+    <!-- ============ HOJA: SINCRONIZACIÓN ============ -->
+    <div id="sync-sheet" class="sheet">
+      <div class="sheet-backdrop" data-close-sheet></div>
+      <div class="sheet-panel">
+        <div class="sheet-handle"></div>
+        <h3>☁️ Sincronización</h3>
+        <p class="sheet-sub" id="sync-status">…</p>
+        <div id="sync-off-box">
+          <button class="btn-primary sync-btn" id="sync-create">✨ Crear mi clave de sincronización</button>
+          <div class="sync-or">— o si ya tienes una de otro dispositivo —</div>
+          <input id="sync-key-input" class="sync-input" type="text"
+                 placeholder="ej: torre-azul-a1b2" autocomplete="off" autocapitalize="none" />
+          <button class="btn-secondary sync-btn" id="sync-connect">Conectar con mi clave</button>
+          <p class="sync-note">Sin cuentas ni contraseñas: la clave es tu identificador. El progreso
+          se combina entre dispositivos (siempre gana el avance mayor). Guárdala bien.</p>
+        </div>
+        <div id="sync-on-box" hidden>
+          <p class="sync-key-display" id="sync-key-display">…</p>
+          <button class="btn-primary sync-btn" id="sync-copy">📋 Copiar clave</button>
+          <p class="sync-note">Introduce esta clave en tus otros dispositivos (⚙️ → Sincronización →
+          «Conectar con mi clave»). El progreso se sube y combina solo al usar la app.</p>
+          <button class="sheet-row" id="sync-disconnect">Desconectar este dispositivo</button>
+        </div>
+        <button class="sheet-row sheet-close" data-close-sheet>Cerrar</button>
+      </div>
+    </div>
+
     <!-- ============ HOJA: AJUSTES ============ -->
     <div id="settings-sheet" class="sheet">
       <div class="sheet-backdrop" data-close-sheet></div>
@@ -106,6 +133,7 @@
         <button class="sheet-row" id="set-flip">🔄 Girar tablero</button>
         <button class="sheet-row" id="set-restart">↺ Reiniciar lección</button>
         <button class="sheet-row" id="set-index">📚 Ver todas las variaciones</button>
+        <button class="sheet-row" id="set-sync">☁️ Sincronización</button>
         <button class="sheet-row" id="set-home">🏠 Volver al inicio</button>
         <button class="sheet-row sheet-close" data-close-sheet>Cerrar</button>
       </div>

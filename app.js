@@ -173,6 +173,7 @@
     m[varId] = status;
     p[openingId] = m;
     try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); } catch (e) {}
+    scheduleSync(); // sube el avance a la nube si hay clave configurada
   }
   function memorizedCount(op) {
     const m = statusMap(op.id);
@@ -210,7 +211,7 @@
   function scheduleFirstReview(opId, varId) {
     const r = loadReviews();
     const k = opId + ":" + varId;
-    if (!r[k]) { r[k] = { box: 0, due: Date.now() + DAY_MS }; saveReviews(r); }
+    if (!r[k]) { r[k] = { box: 0, due: Date.now() + DAY_MS }; saveReviews(r); scheduleSync(); }
   }
   function updateReview(opId, varId, clean) {
     const r = loadReviews();
@@ -218,6 +219,7 @@
     const box = clean ? Math.min(((r[k] && r[k].box) || 0) + 1, REVIEW_DAYS.length - 1) : 0;
     r[k] = { box, due: Date.now() + REVIEW_DAYS[box] * DAY_MS };
     saveReviews(r);
+    scheduleSync();
     return REVIEW_DAYS[box];
   }
   // Da agenda a lo que se memorizó antes de existir el repaso espaciado.
@@ -265,6 +267,89 @@
     op.variations.forEach((v, i) => { if (m[v.id] === "memorized") pool.push(i); });
     if (!pool.length) return;
     startLesson(op, pool[Math.floor(Math.random() * pool.length)], "game");
+  }
+
+  // ---- Sincronización en la nube (opcional, con clave personal) -------------
+  // Sin cuentas: una clave tipo «torre-azul-a1b2» identifica tu progreso en
+  // /api/sync (función de Vercel + Upstash). Al abrir la app se descarga y
+  // COMBINA con lo local (siempre gana el avance mayor) y cada progreso nuevo
+  // se sube solo. Si no hay clave o no hay red, todo sigue local, como siempre.
+  const SYNC_KEY = "aperturas_sync_key";
+  function getSyncKey() {
+    try { return localStorage.getItem(SYNC_KEY) || ""; } catch (e) { return ""; }
+  }
+  function setSyncKey(k) {
+    try { k ? localStorage.setItem(SYNC_KEY, k) : localStorage.removeItem(SYNC_KEY); } catch (e) {}
+  }
+  function genSyncKey() {
+    const A = ["torre", "alfil", "caballo", "dama", "peon", "gambito", "enroque", "jaque", "apertura", "defensa"];
+    const B = ["verde", "azul", "dorado", "veloz", "astuto", "firme", "salvaje", "noble", "secreto", "audaz"];
+    const rand = Math.random().toString(36).slice(2, 6);
+    return pick(A) + "-" + pick(B) + "-" + rand;
+  }
+  // Normaliza el formato antiguo (array = memorizadas) antes de combinar.
+  function normProgress(p) {
+    const out = {};
+    for (const op in p) {
+      let m = p[op];
+      if (Array.isArray(m)) { const t = {}; m.forEach((id) => { t[id] = "memorized"; }); m = t; }
+      out[op] = m || {};
+    }
+    return out;
+  }
+  function mergeRemote(remote) {
+    if (!remote) return;
+    // Progreso: por variación se queda el estado más avanzado.
+    const local = normProgress(loadProgress());
+    const rp = normProgress(remote.progress || {});
+    for (const op in rp) {
+      local[op] = local[op] || {};
+      for (const v in rp[op]) {
+        if ((STATUS_RANK[rp[op][v]] || 0) > (STATUS_RANK[local[op][v] || ""] || 0)) {
+          local[op][v] = rp[op][v];
+        }
+      }
+    }
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(local)); } catch (e) {}
+    // Repasos: gana la caja mayor; a igualdad, la fecha más próxima.
+    const r = loadReviews();
+    const rr = remote.reviews || {};
+    for (const k in rr) {
+      const a = r[k], b = rr[k];
+      if (!a || b.box > a.box || (b.box === a.box && b.due < a.due)) r[k] = b;
+    }
+    saveReviews(r);
+  }
+  let syncTimer = null;
+  function scheduleSync() {
+    if (!getSyncKey()) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(pushSync, 1500); // agrupa varios cambios en una subida
+  }
+  async function pushSync() {
+    const k = getSyncKey();
+    if (!k) return false;
+    try {
+      const r = await fetch("api/sync?key=" + encodeURIComponent(k), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ progress: loadProgress(), reviews: loadReviews() })
+      });
+      return r.ok;
+    } catch (e) { return false; }
+  }
+  // Devuelve "ok" | "empty" | "error".
+  async function pullSync() {
+    const k = getSyncKey();
+    if (!k) return "error";
+    try {
+      const r = await fetch("api/sync?key=" + encodeURIComponent(k));
+      if (!r.ok) return "error";
+      const data = await r.json();
+      if (!data) return "empty";
+      mergeRemote(data);
+      return "ok";
+    } catch (e) { return "error"; }
   }
 
   // =========================================================================
@@ -722,7 +807,9 @@
     setCoach(msg, "happy");
     animateMove(move);
     state.locked = true;
-    const wait = why ? readMs(msg) : SLIDE_MS + 850;
+    // Ritmo ágil entre jugadas: el elogio corto apenas frena (~0,8 s) y el
+    // feedback con porqué se lee mientras tanto pero no bloquea más de 3,2 s.
+    const wait = why ? Math.min(readMs(msg), 3200) : SLIDE_MS + 420;
     // En refuerzo no se sigue la línea: se pasa a la siguiente repetición.
     if (state.drill) {
       state.drill.pos++;
@@ -1130,6 +1217,66 @@
       goHome();
     });
 
+    // Sincronización en la nube
+    function renderSyncSheet(msg) {
+      const k = getSyncKey();
+      $("#sync-off-box").hidden = !!k;
+      $("#sync-on-box").hidden = !k;
+      $("#sync-key-display").textContent = k;
+      $("#sync-status").textContent = msg || (k
+        ? "Sincronización activada ✅ Tu clave:"
+        : "Guarda tu progreso en la nube con una clave personal, sin cuentas ni contraseñas.");
+    }
+    $("#set-sync").addEventListener("click", () => {
+      el.settingsSheet.classList.remove("is-open");
+      renderSyncSheet();
+      $("#sync-sheet").classList.add("is-open");
+    });
+    $("#sync-create").addEventListener("click", async () => {
+      const k = genSyncKey();
+      setSyncKey(k);
+      renderSyncSheet("Subiendo tu progreso…");
+      const ok = await pushSync();
+      if (ok) {
+        renderSyncSheet("¡Clave creada y progreso subido! ✅ Tu clave:");
+      } else {
+        setSyncKey("");
+        renderSyncSheet("No se pudo conectar con el servidor. Falta activar la base de datos (Upstash) en Vercel, o no hay internet.");
+      }
+    });
+    $("#sync-connect").addEventListener("click", async () => {
+      const k = $("#sync-key-input").value.trim().toLowerCase();
+      if (!/^[a-z0-9-]{8,60}$/.test(k)) {
+        renderSyncSheet("Esa clave no parece válida: debe ser como «torre-azul-a1b2».");
+        return;
+      }
+      setSyncKey(k);
+      renderSyncSheet("Conectando…");
+      const st = await pullSync();
+      if (st === "error") {
+        setSyncKey("");
+        renderSyncSheet("No se pudo conectar. Revisa la clave y tu conexión (o falta activar Upstash en Vercel).");
+        return;
+      }
+      await pushSync(); // sube el resultado combinado
+      renderHome();     // refresca barras y repasos con lo descargado
+      $("#sync-key-input").value = "";
+      renderSyncSheet(st === "empty"
+        ? "Conectado ✅ (la clave aún no tenía datos; se subió tu progreso). Tu clave:"
+        : "¡Conectado y progreso combinado! ✅ Tu clave:");
+    });
+    $("#sync-copy").addEventListener("click", () => {
+      const k = getSyncKey();
+      const done = () => renderSyncSheet("Clave copiada al portapapeles 📋 Tu clave:");
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(k).then(done).catch(() => renderSyncSheet());
+      }
+    });
+    $("#sync-disconnect").addEventListener("click", () => {
+      setSyncKey("");
+      renderSyncSheet("Dispositivo desconectado. Tu progreso local se conserva.");
+    });
+
     // Felicitación final
     $("#complete-next").addEventListener("click", () => {
       el.completeOverlay.classList.remove("is-open");
@@ -1157,6 +1304,14 @@
     // (localStorage) en limpiezas automáticas de datos web del móvil.
     if (navigator.storage && navigator.storage.persist) {
       navigator.storage.persist().catch(() => {});
+    }
+
+    // Si hay clave de sincronización: baja el progreso de la nube, combínalo
+    // y refresca el inicio (y sube el resultado, por si lo local iba delante).
+    if (getSyncKey()) {
+      pullSync().then((st) => {
+        if (st === "ok") { renderHome(); pushSync(); }
+      });
     }
 
     if ("serviceWorker" in navigator) {
