@@ -42,7 +42,7 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
   encontrando la jugada correcta de la línea.
 - **Repertorio coherente por apertura.** Tus jugadas son fijas y cada
   variación responde a una jugada concreta del rival con una única réplica
-  (sin contradicciones). 44 líneas en total, validadas automáticamente.
+  (sin contradicciones). 57 líneas en total, validadas automáticamente.
 - **Entrenador cordial.** Cada jugada llega con su explicación y su porqué en
   la misma burbuja, con ánimos cuando aciertas y pistas suaves cuando fallas.
 - **Modo Guiado / Memoria.** En Guiado se resalta la pieza a mover; en Memoria
@@ -52,7 +52,7 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
 - **PWA instalable y offline.** «Añadir a la pantalla de inicio» en el móvil;
   funciona completamente sin conexión.
 
-## ♟ Cursos incluidos (6 aperturas · repertorio coherente)
+## ♟ Cursos incluidos (8 aperturas · repertorio coherente)
 
 | Curso | Bando | Variaciones |
 |---|---|---|
@@ -62,6 +62,11 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
 | Defensa Siciliana | Blancas | 7 |
 | Gambito de Dama | Blancas | 8 |
 | Defensa India de Rey | Negras | 6 |
+| Defensa Caro-Kann | Negras | 7 |
+| Defensa Eslava | Negras | 6 |
+
+Con negras el repertorio queda completo: **Caro-Kann** contra 1.e4 y
+**India de Rey** o **Eslava** contra 1.d4 (dos estilos a elegir).
 
 Cada curso es un repertorio: tus jugadas fijas y una respuesta concreta para
 cada réplica del rival. El número de líneas es el de respuestas distintas que

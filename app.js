@@ -362,7 +362,9 @@
     ruylopez:     ["#ff4b4b", "#d33a3a"],
     sicilian:     ["#ff9600", "#d17c00"],
     queensgambit: ["#ce82ff", "#a968d6"],
-    kingsindian:  ["#2ec4b6", "#25a094"]
+    kingsindian:  ["#2ec4b6", "#25a094"],
+    carokann:     ["#00b8d9", "#0092ad"],
+    slav:         ["#b58863", "#96684a"]
   };
 
   function renderHome() {
