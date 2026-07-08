@@ -148,6 +148,50 @@ const REP = [
       { name: "Variante del Fianchetto (blancas con g3)", blurb: "Las blancas fianchetan; maniobramos con …Nbd7 y …e5.",
         san: "1. d4 Nf6 2. c4 g6 3. Nf3 Bg7 4. g3 O-O 5. Bg2 d6 6. O-O Nbd7 7. Nc3 e5 8. e4 c6 9. h3 Qb6" }
     ]
+  },
+
+  {
+    id: "carokann", name: "Defensa Caro-Kann", emoji: "🧱", color: "black",
+    level: "Principiante",
+    tag: "La muralla contra 1.e4",
+    blurb: "Juegas con negras: c6, d5 y el alfil sale LIBRE a f5 antes de …e6.",
+    lines: [
+      { name: "Clásica: ataque h4", blurb: "Las blancas cazan al alfil con h4-h5; se refugia en h7.",
+        san: "1. e4 c6 2. d4 d5 3. Nc3 dxe4 4. Nxe4 Bf5 5. Ng3 Bg6 6. h4 h6 7. Nf3 Nd7 8. h5 Bh7 9. Bd3 Bxd3 10. Qxd3 e6" },
+      { name: "Clásica tranquila (6.Nf3)", blurb: "Sin h4: desarrollamos y cambiamos alfiles en d3.",
+        san: "1. e4 c6 2. d4 d5 3. Nc3 dxe4 4. Nxe4 Bf5 5. Ng3 Bg6 6. Nf3 Nd7 7. Bd3 Bxd3 8. Qxd3 e6 9. O-O Ngf6 10. Re1 Be7" },
+      { name: "Avance (3.e5)", blurb: "Cierran el centro; el alfil sale y maniobramos con …Ne7.",
+        san: "1. e4 c6 2. d4 d5 3. e5 Bf5 4. Nf3 e6 5. Be2 Nd7 6. O-O Ne7 7. Nbd2 h6" },
+      { name: "Cambio (4.Bd3)", blurb: "Estructura simétrica; contraatacamos con …Na5 y tiempo.",
+        san: "1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Bd3 Nc6 5. c3 Nf6 6. Bf4 Bg4 7. Qb3 Na5 8. Qa4+ Bd7 9. Qc2 e6" },
+      { name: "Ataque Panov (4.c4)", blurb: "Juego activo blanco a cambio de un peón aislado.",
+        san: "1. e4 c6 2. d4 d5 3. exd5 cxd5 4. c4 Nf6 5. Nc3 e6 6. Nf3 Bb4 7. cxd5 Nxd5 8. Bd2 Nc6 9. Bd3 O-O" },
+      { name: "Dos Caballos (2.Nc3)", blurb: "Cambiamos en f3 y montamos la muralla …e6.",
+        san: "1. e4 c6 2. Nc3 d5 3. Nf3 Bg4 4. h3 Bxf3 5. Qxf3 e6 6. d4 dxe4 7. Nxe4 Nd7 8. Bd3 Ngf6 9. O-O Be7" },
+      { name: "Sistema d3 (KIA)", blurb: "Las blancas no pelean el centro: lo ocupamos con …e5.",
+        san: "1. e4 c6 2. d3 d5 3. Nd2 e5 4. Ngf3 Bd6 5. g3 Nf6 6. Bg2 O-O 7. O-O Re8" }
+    ]
+  },
+
+  {
+    id: "slav", name: "Defensa Eslava", emoji: "⛰️", color: "black",
+    level: "Intermedio",
+    tag: "Sólida y ambiciosa contra 1.d4",
+    blurb: "Juegas con negras: c6 y d5, tomas en c4 y el alfil sale libre a f5.",
+    lines: [
+      { name: "Principal (5.a4)", blurb: "Tomamos en c4 y el alfil sale libre; …Bb4 y enroque.",
+        san: "1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. Nc3 dxc4 5. a4 Bf5 6. e3 e6 7. Bxc4 Bb4 8. O-O O-O 9. Qe2 Nbd7" },
+      { name: "Retención (5.e3): …b5", blurb: "Defendemos el peón de c4 con …b5 y …b4.",
+        san: "1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. Nc3 dxc4 5. e3 b5 6. a4 b4 7. Na2 e6 8. Bxc4 Be7 9. O-O O-O" },
+      { name: "Gambito central (5.e4)", blurb: "Sacrifican el centro; devolvemos golpes con …b5 y …Nd5.",
+        san: "1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. Nc3 dxc4 5. e4 b5 6. e5 Nd5 7. a4 e6 8. axb5 Nxc3 9. bxc3 cxb5" },
+      { name: "Cambio (3.cxd5)", blurb: "Simetría total; ganamos con mejor colocación de piezas.",
+        san: "1. d4 d5 2. c4 c6 3. cxd5 cxd5 4. Nc3 Nf6 5. Nf3 Nc6 6. Bf4 Bf5 7. e3 e6 8. Qb3 Bb4 9. Bb5 O-O" },
+      { name: "Con 4.e3: alfil a f5", blurb: "Sistema tranquilo blanco; salimos con …Bf5 igual.",
+        san: "1. d4 d5 2. c4 c6 3. Nc3 Nf6 4. e3 Bf5 5. Nf3 e6 6. Bd3 Bxd3 7. Qxd3 Nbd7 8. O-O Be7 9. e4 dxe4 10. Nxe4 O-O" },
+      { name: "Con 4.Qc2", blurb: "Su dama sale pronto; tomamos en c4 y desarrollamos libre.",
+        san: "1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. Qc2 dxc4 5. Qxc4 Bf5 6. g3 e6 7. Bg2 Nbd7 8. O-O Be7 9. Nc3 O-O" }
+    ]
   }
 ];
 
