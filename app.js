@@ -699,17 +699,20 @@
       return;
     }
 
-    // Turno del alumno: la burbuja trae solo NUESTRA jugada (o el reto de
-    // memoria). Única excepción: la entrada a la variación cuando la partida
-    // la abre el rival, para no perder el nombre de la línea (salvo en
-    // partida de repertorio, donde la línea es secreta).
+    // Turno del alumno. Guiado: instrucción con el porqué. De memoria: el reto
+    // solo se muestra al EMPEZAR la línea; después, la burbuja conserva la
+    // explicación de la jugada anterior mientras el rival mueve y hasta que
+    // el alumno juegue — así hay todo el tiempo del mundo para leerla.
     const prev = ms[state.step - 1];
     const intro = (state.phase !== "game" && prev && prev.by === "engine" &&
                    prev.text && prev.text.startsWith("Entramos"))
       ? prev.text.split(". ")[0] + ". "
       : "";
-    const ahora = state.guided ? move.text : pick(RECALL_PROMPTS);
-    setCoach(intro + ahora, "talk");
+    if (state.guided) {
+      setCoach(intro + move.text, "talk");
+    } else if (state.step <= 1) {
+      setCoach(intro + pick(RECALL_PROMPTS), "talk");
+    }
     state.locked = false;
     state.selected = null;
     if (state.guided) highlightFrom(move); else clearHints();
@@ -809,9 +812,11 @@
     setCoach(msg, "happy");
     animateMove(move);
     state.locked = true;
-    // Ritmo ágil entre jugadas: el elogio corto apenas frena (~0,8 s) y el
-    // feedback con porqué se lee mientras tanto pero no bloquea más de 3,2 s.
-    const wait = why ? Math.min(readMs(msg), 3200) : SLIDE_MS + 420;
+    // Ritmo ágil: fuera del refuerzo, la explicación PERMANECE en pantalla
+    // durante la jugada del rival y hasta que el alumno mueva (runStep ya no
+    // la pisa), así que no hace falta bloquear para leerla. En el refuerzo,
+    // el siguiente reto sí sustituye el texto: damos tiempo de lectura.
+    const wait = state.drill ? Math.min(readMs(msg), 3200) : SLIDE_MS + 420;
     // En refuerzo no se sigue la línea: se pasa a la siguiente repetición.
     if (state.drill) {
       state.drill.pos++;
