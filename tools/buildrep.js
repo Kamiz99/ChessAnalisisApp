@@ -653,6 +653,18 @@ function simKey(moves, userIsWhite, plies) {
 }
 
 // ---- Construcción ---------------------------------------------------------
+// Niveles por curso: Fácil = las primeras líneas (las más comunes, máx. 5);
+// el resto se reparte entre Intermedio y Avanzado.
+function tierSplit(n) {
+  const easy = Math.min(5, Math.ceil(n / 2));
+  const rest = n - easy;
+  const mid = Math.ceil(rest / 2);
+  return [easy, mid, rest - mid];
+}
+function tierFor(idx, counts) {
+  return idx < counts[0] ? 0 : idx < counts[0] + counts[1] ? 1 : 2;
+}
+
 const OUT = [];
 const POSITIONS = {}; // posición serializada -> {o, v, p} para el explorador
 let problems = 0;
@@ -660,6 +672,7 @@ let problems = 0;
 for (const op of REP) {
   const userIsWhite = op.color === "white";
   const variations = [];
+  const tiers = tierSplit(op.lines.length);
   const posResponse = {}; // posKey -> { mv, lineName } (jugada NUESTRA)
 
   op.lines.forEach((line) => {
@@ -684,6 +697,11 @@ for (const op of REP) {
       }
     });
 
+    // Nivel de la variación: las líneas van ordenadas de más común a más
+    // rara, así que Fácil = primer tramo (máx. 5), y el resto se reparte
+    // entre Intermedio y Avanzado. Londres (11): 5/3/3.
+    // (El cálculo vive en tierFor, definido antes del bucle.)
+
     // Índice de posiciones para el explorador («¿qué apertura es esta?»):
     // cada posición de la línea apunta a su curso/variación (la 1ª gana).
     const vIdx = variations.length;
@@ -696,6 +714,7 @@ for (const op of REP) {
       id: slug(line.name),
       name: line.name,
       blurb: line.blurb || `${moves.length} jugadas`,
+      tier: tierFor(vIdx, tiers),
       moves: buildLine(moves, toks, userIsWhite, line.name, IDEAS[op.id], RIVAL[op.id], op.id),
     });
   });

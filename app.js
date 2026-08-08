@@ -181,6 +181,27 @@
     const m = statusMap(op.id);
     return op.variations.filter((v) => m[v.id] === "memorized").length;
   }
+  // ---- Niveles del curso (Fácil / Intermedio / Avanzado) -------------------
+  // Cada variación trae su nivel (tier 0/1/2) desde el constructor. Un nivel
+  // se desbloquea SOLO cuando todas las variaciones de los niveles anteriores
+  // están memorizadas: hasta entonces no aparece disponible en ningún sitio.
+  const TIER_NAMES = ["Fácil", "Intermedio", "Avanzado"];
+  const TIER_ICONS = ["🟢", "🟡", "🔴"];
+  function tierUnlocked(op, tier) {
+    if (tier <= 0) return true;
+    const m = statusMap(op.id);
+    return op.variations.every((v) => (v.tier || 0) >= tier || m[v.id] === "memorized");
+  }
+  // Nivel «actual» del curso: el primero que aún no está completo.
+  function currentTier(op) {
+    const m = statusMap(op.id);
+    for (let t = 0; t < 3; t++) {
+      const vs = op.variations.filter((v) => (v.tier || 0) === t);
+      if (vs.length && vs.some((v) => m[v.id] !== "memorized")) return t;
+    }
+    return 2;
+  }
+
   // Siguiente paso pendiente del curso: índice + fase con la que empezar.
   // Estados: "" → learn ; "learned"/"recalled1" → recall ; "memorized" → hecho.
   function firstPending(op) {
@@ -438,6 +459,13 @@
       const cta = done >= total ? "¡Curso completado! Repasar"
         : rank > 0 ? "Continuar curso"
         : "Empezar curso";
+      // Nivel actual del curso y avance dentro de él.
+      const ct = currentTier(op);
+      const tierVars = op.variations.filter((v) => (v.tier || 0) === ct);
+      const tierDone = tierVars.filter((v) => m[v.id] === "memorized").length;
+      const tierBadge = done >= total
+        ? "🏆 Completo"
+        : `${TIER_ICONS[ct]} ${TIER_NAMES[ct]} ${tierDone}/${tierVars.length}`;
       const card = document.createElement("button");
       card.className = "opening-card";
       card.style.animationDelay = (cardIdx * 55) + "ms"; // entrada escalonada
@@ -454,7 +482,7 @@
           <span class="opening-blurb">${op.blurb}</span>
           <span class="course-bar"><span class="course-bar-fill" style="width:${pct}%"></span></span>
           <span class="opening-meta">
-            <span class="badge">${op.level}</span>
+            <span class="badge">${tierBadge}</span>
             <span class="badge badge-soft">${done}/${total}</span>
             <span class="course-cta">${cta}</span>
           </span>
@@ -486,23 +514,40 @@
     const m = statusMap(op.id);
     el.variationsTitle.textContent = `${op.emoji} ${op.name}`;
     el.variationsList.innerHTML = "";
+    let lastTier = -1;
     op.variations.forEach((v, idx) => {
+      const tier = v.tier || 0;
+      const unlocked = tierUnlocked(op, tier);
+      // Cabecera de nivel al cambiar de tramo.
+      if (tier !== lastTier) {
+        lastTier = tier;
+        const head = document.createElement("div");
+        head.className = "tier-head";
+        head.textContent = `${TIER_ICONS[tier]} ${TIER_NAMES[tier]}` +
+          (unlocked ? "" : ` · 🔒 completa ${TIER_NAMES[tier - 1]} para desbloquear`);
+        el.variationsList.appendChild(head);
+      }
       const st = m[v.id] || "";
-      const mark = st === "memorized" ? "✓" : (st === "learned" || st === "recalled1") ? "½" : (idx + 1);
+      const mark = !unlocked ? "🔒"
+        : st === "memorized" ? "✓"
+        : (st === "learned" || st === "recalled1") ? "½" : (idx + 1);
       const row = document.createElement("button");
-      row.className = "variation-row" + (st === "memorized" ? " is-done" : "");
+      row.className = "variation-row" +
+        (st === "memorized" ? " is-done" : "") + (unlocked ? "" : " is-locked");
       row.innerHTML = `
         <span class="variation-check">${mark}</span>
         <span class="variation-info">
-          <span class="variation-name">${v.name}</span>
-          <span class="variation-blurb">${v.blurb}</span>
+          <span class="variation-name">${unlocked ? v.name : "· · ·"}</span>
+          <span class="variation-blurb">${unlocked ? v.blurb : "Línea oculta hasta desbloquear el nivel."}</span>
         </span>
-        <span class="variation-meta">›</span>`;
-      row.addEventListener("click", () => {
-        el.variationsSheet.classList.remove("is-open");
-        // Si ya está aprendida o repetida una vez, salta a la fase de memoria.
-        startLesson(op, idx, (st === "learned" || st === "recalled1") ? "recall" : "learn");
-      });
+        <span class="variation-meta">${unlocked ? "›" : ""}</span>`;
+      if (unlocked) {
+        row.addEventListener("click", () => {
+          el.variationsSheet.classList.remove("is-open");
+          // Si ya está aprendida o repetida una vez, salta a la fase de memoria.
+          startLesson(op, idx, (st === "learned" || st === "recalled1") ? "recall" : "learn");
+        });
+      }
       el.variationsList.appendChild(row);
     });
     el.variationsSheet.classList.add("is-open");
@@ -1193,6 +1238,23 @@
       return;
     }
 
+    // ¿Se acaba de completar un NIVEL? Celebración con desbloqueo del
+    // siguiente (hasta ahora estaba oculto en toda la app).
+    const t = v.tier || 0;
+    const m2 = statusMap(op.id);
+    const tierComplete = op.variations.every(
+      (x) => (x.tier || 0) !== t || m2[x.id] === "memorized");
+    const hasNextTier = op.variations.some((x) => (x.tier || 0) === t + 1);
+    if (tierComplete && hasNextTier) {
+      const next = firstPending(op);
+      flashThenAdvance(
+        `${TIER_ICONS[t]} ¡Nivel ${TIER_NAMES[t]} completado!`,
+        `🔓 Se desbloquea el nivel ${TIER_NAMES[t + 1]} de ${op.name}: líneas nuevas, más profundas. Seguimos.`,
+        () => startLesson(op, next.index, next.phase)
+      );
+      return;
+    }
+
     // Sigue habiendo variaciones pendientes → la app avanza SOLA a la siguiente.
     const next = firstPending(op);
     flashThenAdvance(
@@ -1566,6 +1628,9 @@
       const op = OPENINGS.find((o) => o.id === fb.hit.o);
       if (!op) return;
       const v = op.variations[fb.hit.v];
+      // Nivel bloqueado: no se abre la línea directamente; el curso continúa
+      // por donde toca (los niveles se ganan, no se saltan).
+      if (!tierUnlocked(op, v.tier || 0)) { startCourse(op); return; }
       const st = getStatus(op.id, v.id);
       startLesson(op, fb.hit.v, (st === "learned" || st === "recalled1") ? "recall" : "learn");
     });
