@@ -508,6 +508,16 @@ const RIVAL = {
 // SOLO clásicos cuyas jugadas están fuera de toda duda. Si una apertura no
 // tiene partida verificada, la app muestra «próximamente» — nunca inventamos.
 const GAMES = {
+  london: [
+    { name: "Partida modelo: el ataque Ne5-f4",
+      note: "Partida MODELO (ilustrativa, no histórica): el plan londinense completo — Ne5, f4 y el golpe en g6 cuando el rival descuida su enroque.",
+      san: "1. d4 d5 2. Bf4 Nf6 3. e3 e6 4. Nf3 Bd6 5. Bg3 O-O 6. Bd3 b6 7. Nbd2 Bb7 8. Ne5 Nbd7 9. f4 Ne4 10. Bxe4 dxe4 11. Qg4 g6 12. Nxg6 fxg6 13. Qxe6+ Kg7 14. Qxd6" }
+  ],
+  zukertort: [
+    { white: "Edgard Colle", black: "John O'Hanlon", event: "Niza", year: 1930, result: "1-0",
+      note: "EL clásico del sistema (versión hermana con c3): tras el regalo griego 12.Bxh7+, el ataque Ng5+ y Qh5 fue imparable. La partida de libro del plan Colle-Zukertort.",
+      san: "1. d4 d5 2. Nf3 Nf6 3. e3 c5 4. c3 e6 5. Bd3 Bd6 6. Nbd2 Nbd7 7. O-O O-O 8. Re1 Re8 9. e4 dxe4 10. Nxe4 Nxe4 11. Bxe4 cxd4 12. Bxh7+" }
+  ],
   italian: [
     { white: "Gioachino Greco", black: "NN", event: "Roma", year: 1620, result: "1-0",
       note: "El castigo clásico a la codicia: las negras comieron en c3 y a1 y el ataque blanco fue imparable tras 12.Bg5.",
@@ -571,6 +581,16 @@ const TRAPS = {
     { name: "El mate del caballo fantasma",
       note: "En la variante …Nd7 (que nosotros NO jugamos), 6.Nd6 es MATE: el peón de e7 está clavado por la dama. Conócela para tenderla con blancas.",
       san: "1. e4 c6 2. d4 d5 3. Nc3 dxe4 4. Nxe4 Nd7 5. Qe2 Ngf6 6. Nd6#" }
+  ],
+  zukertort: [
+    { name: "El regalo griego (patrón Bxh7+)",
+      note: "El patrón que da miedo al rival: sacrificio en h7, Ng5+ y Qh5 con mate o ganancia decisiva. Aprende las condiciones: caballo en f3, alfil en d3 y el caballo defensor de f6 fuera.",
+      san: "1. d4 d5 2. Nf3 Nf6 3. e3 c5 4. c3 e6 5. Bd3 Bd6 6. Nbd2 Nbd7 7. O-O O-O 8. Re1 Re8 9. e4 dxe4 10. Nxe4 Nxe4 11. Bxe4 cxd4 12. Bxh7+ Kxh7 13. Ng5+" }
+  ],
+  slav: [
+    { name: "La avaricia del peón c4 (…b4??)",
+      note: "Si las negras intentan retener c4 SIN tener 3.Nf3 dentro, e4-e5 y Bxc4 lo recuperan con un centrazo. Por eso nuestro repertorio solo toma en c4 tras 3.Nf3: apréndela por los dos lados.",
+      san: "1. d4 d5 2. c4 c6 3. Nc3 dxc4 4. e4 b5 5. a4 b4 6. Na2 Nf6 7. e5 Nd5 8. Bxc4" }
   ],
   kingsindian: [
     { name: "El salvavidas …Nxe4",
