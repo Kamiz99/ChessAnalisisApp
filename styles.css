@@ -145,6 +145,47 @@ html, body {
 }
 .game-btn:active { transform: translateY(3px); box-shadow: 0 0 0 var(--line); }
 
+/* Herramientas del inicio (dojo / explorador / ranking) */
+.home-tools { display: flex; gap: 10px; margin: -8px 0 22px; }
+.tool-card {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: #fff; border: 2px solid var(--line); border-radius: var(--radius);
+  padding: 12px 6px; cursor: pointer; font-family: inherit;
+  box-shadow: 0 3px 0 var(--line);
+}
+.tool-card:active { transform: translateY(3px); box-shadow: 0 0 0 var(--line); }
+.tool-card[hidden] { display: none; }
+.tool-card-emoji { font-size: 24px; }
+.tool-card-name { font-size: 12px; font-weight: 800; color: var(--text); }
+.tool-card-sub { font-size: 10px; font-weight: 600; color: var(--text-dim); line-height: 1.2; }
+
+/* Explorador (tablero libre) */
+.xp-card { height: auto; min-height: 64px; }
+.xp-goto { display: block; width: 100%; margin: -6px 0 14px; }
+.xp-goto[hidden] { display: none; }
+
+/* Visor de partidas / trampas */
+.replay-row-note { font-size: 12px; color: var(--text-mid); font-weight: 600; line-height: 1.4; margin: 2px 0 0; }
+
+/* Ranking por winrate */
+.stats-periods { display: flex; gap: 8px; margin-bottom: 12px; }
+.chip-period {
+  flex: 1; background: #fff; border: 2px solid var(--line); border-radius: 999px;
+  padding: 8px; font-family: inherit; font-size: 12px; font-weight: 800;
+  color: var(--text-mid); cursor: pointer;
+}
+.chip-period.is-on { background: var(--green); border-color: var(--green); color: #fff; }
+.stats-list { max-height: 45vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.stats-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 4px; border-bottom: 1px solid #f0f0f0;
+}
+.stats-row-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stats-row-bar { flex: 0 0 90px; height: 10px; background: var(--line); border-radius: 999px; overflow: hidden; }
+.stats-row-fill { display: block; height: 100%; background: var(--green); border-radius: 999px; }
+.stats-row-pct { flex: 0 0 44px; text-align: right; font-size: 13px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+
 .section-title {
   font-size: 13px; color: var(--text-dim); margin: 0 0 12px;
   text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800;

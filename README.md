@@ -32,6 +32,19 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
   desbloquea la partida: el rival elige **al azar** una de tus líneas y
   respondes de memoria **sin saber cuál es**, como en una partida real. Al
   final se revela la línea y puedes jugar otra (práctica de transferencia).
+- **🥋 Dojo.** Con 2+ líneas memorizadas (de cualquier curso), el dojo mezcla
+  TODOS tus cursos: el rival elige apertura Y línea al azar y respondes de
+  memoria (práctica entrelazada, la forma más dura y efectiva de repasar).
+- **🧭 ¿Qué apertura es?** Tablero libre: mueves piezas de ambos bandos y la
+  app reconoce la posición (índice de todas las líneas del repertorio, con
+  transposiciones) y te lleva al curso correspondiente.
+- **🏆 Partidas de GM y 😈 trampas.** Cada curso incluye partidas reales
+  verificadas de grandes maestros (Fischer, Karpov-Kasparov, Tal, Deep
+  Blue-Kasparov, Greco…) y las trampas típicas de la apertura, navegables
+  jugada a jugada con ‹ ›. Solo partidas verificadas: si no hay, se dice.
+- **📊 Ranking por winrate.** Datos reales de la base de Lichess (por mes,
+  año e histórico; la fuente no publica series diarias/semanales), con el %
+  de victorias jugando tu bando de cada curso.
 - **Tono de entrenador.** La app habla en primera persona del plural
   («jugamos…», «buscamos…»), explicando la idea de cada jugada y terminando con
   el movimiento.
@@ -42,7 +55,7 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
   encontrando la jugada correcta de la línea.
 - **Repertorio coherente por apertura.** Tus jugadas son fijas y cada
   variación responde a una jugada concreta del rival con una única réplica
-  (sin contradicciones). 57 líneas en total, validadas automáticamente.
+  (sin contradicciones). 63 líneas en total, validadas automáticamente.
 - **Entrenador cordial.** Cada jugada llega con su explicación y su porqué en
   la misma burbuja, con ánimos cuando aciertas y pistas suaves cuando fallas.
 - **Modo Guiado / Memoria.** En Guiado se resalta la pieza a mover; en Memoria
@@ -52,7 +65,7 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
 - **PWA instalable y offline.** «Añadir a la pantalla de inicio» en el móvil;
   funciona completamente sin conexión.
 
-## ♟ Cursos incluidos (8 aperturas · repertorio coherente)
+## ♟ Cursos incluidos (9 aperturas · repertorio coherente)
 
 | Curso | Bando | Variaciones |
 |---|---|---|
@@ -62,6 +75,7 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
 | Defensa Siciliana | Blancas | 7 |
 | Gambito de Dama | Blancas | 8 |
 | Defensa India de Rey | Negras | 6 |
+| Sistema Zukertort | Blancas | 6 |
 | Defensa Caro-Kann | Negras | 7 |
 | Defensa Eslava | Negras | 6 |
 

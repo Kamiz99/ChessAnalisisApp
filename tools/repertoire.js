@@ -42,7 +42,7 @@ const REP = [
   {
     id: "italian", name: "Apertura Italiana", emoji: "🇮🇹", color: "white",
     level: "Principiante",
-    tag: "La más fácil para empezar",
+    tag: "La más tramposa 😈",
     blurb: "1.e4 e5 2.Nf3 Nc6 3.Bc4 y el plan tranquilo c3, d3, O-O, Re1, Nbd2.",
     lines: [
       { name: "Giuoco Pianissimo (…Bc5)", blurb: "Maniobra lenta con Nbd2-f1-g3.",
@@ -147,6 +147,27 @@ const REP = [
         san: "1. d4 Nf6 2. c4 g6 3. Nc3 Bg7 4. e4 d6 5. Nf3 O-O 6. h3 e5 7. d5 Na6 8. Bg5 Qe8 9. g4" },
       { name: "Variante del Fianchetto (blancas con g3)", blurb: "Las blancas fianchetan; maniobramos con …Nbd7 y …e5.",
         san: "1. d4 Nf6 2. c4 g6 3. Nf3 Bg7 4. g3 O-O 5. Bg2 d6 6. O-O Nbd7 7. Nc3 e5 8. e4 c6 9. h3 Qb6" }
+    ]
+  },
+
+  {
+    id: "zukertort", name: "Sistema Zukertort", emoji: "🦉", color: "white",
+    level: "Principiante",
+    tag: "La más fácil para empezar",
+    blurb: "Tu sistema: d4, Nf3, e3, Bd3, b3, Bb2 y el salto Ne5. Un plan, cero teoría.",
+    lines: [
+      { name: "Principal: …Nc6 y …Bd6", blurb: "El esquema completo con el salto Ne5.",
+        san: "1. d4 d5 2. Nf3 Nf6 3. e3 e6 4. Bd3 c5 5. b3 Nc6 6. O-O Bd6 7. Bb2 O-O 8. Nbd2 Qe7 9. Ne5 cxd4 10. exd4" },
+      { name: "…Nc6 con cxd4", blurb: "El rival cambia en d4; recapturamos con el peón e.",
+        san: "1. d4 d5 2. Nf3 Nf6 3. e3 e6 4. Bd3 c5 5. b3 Nc6 6. O-O cxd4 7. exd4 Bd6 8. Bb2 O-O 9. Nbd2 Qe7 10. Ne5" },
+      { name: "…Be7 tranquilo", blurb: "El rival desarrolla modesto; doble fianchetto y Ne5.",
+        san: "1. d4 d5 2. Nf3 Nf6 3. e3 e6 4. Bd3 c5 5. b3 Be7 6. O-O O-O 7. Bb2 b6 8. Nbd2 Bb7 9. Ne5" },
+      { name: "Contra …Bf5", blurb: "El rival saca el alfil; lo cambiamos en d3.",
+        san: "1. d4 d5 2. Nf3 Nf6 3. e3 Bf5 4. Bd3 Bxd3 5. Qxd3 e6 6. b3 Nbd7 7. Bb2 Bd6 8. O-O O-O 9. Nbd2" },
+      { name: "…Bd6 y torre a e8", blurb: "El rival prepara …e5; plantamos el caballo en e5 antes.",
+        san: "1. d4 d5 2. Nf3 Nf6 3. e3 e6 4. Bd3 Bd6 5. b3 O-O 6. O-O Nbd7 7. Bb2 Re8 8. Ne5 c6 9. f4" },
+      { name: "Contra el fianchetto (…g6)", blurb: "Setup indio del rival; centro firme y cambios sanos.",
+        san: "1. d4 Nf6 2. Nf3 g6 3. e3 Bg7 4. Be2 O-O 5. O-O d6 6. b3 Nbd7 7. Bb2 Re8 8. c4 e5 9. dxe5 Nxe5 10. Nxe5 Rxe5 11. Nd2" }
     ]
   },
 
