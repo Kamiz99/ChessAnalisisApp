@@ -76,6 +76,8 @@
   function cacheDom() {
     el.screenHome = $("#screen-home");
     el.screenLesson = $("#screen-lesson");
+    el.screenExplore = $("#screen-explore");
+    el.xboard = $("#xboard");
     el.openingsList = $("#openings-list");
     el.board = $("#board");
     el.coachText = $("#coach-text");
@@ -262,11 +264,33 @@
   // alumno responde de memoria SIN saber cuál es (práctica de transferencia:
   // reconocer la posición, como en una partida real).
   function startGame(op) {
+    dojoActive = false;
     const m = statusMap(op.id);
     const pool = [];
     op.variations.forEach((v, i) => { if (m[v.id] === "memorized") pool.push(i); });
     if (!pool.length) return;
     startLesson(op, pool[Math.floor(Math.random() * pool.length)], "game");
+  }
+
+  // 🥋 Dojo: como la partida de repertorio, pero mezclando TODAS las líneas
+  // memorizadas de TODOS los cursos (práctica entrelazada: obliga a reconocer
+  // primero QUÉ apertura está en el tablero, como en un torneo real).
+  let dojoActive = false;
+  function dojoPool() {
+    const pool = [];
+    OPENINGS.forEach((op) => {
+      const m = statusMap(op.id);
+      op.variations.forEach((v, i) => { if (m[v.id] === "memorized") pool.push({ op, i }); });
+    });
+    return pool;
+  }
+  function startDojo() {
+    const pool = dojoPool();
+    if (!pool.length) return;
+    const r = pool[Math.floor(Math.random() * pool.length)];
+    startLesson(r.op, r.i, "game");
+    dojoActive = true; // tras startLesson: la partida actual pertenece al dojo
+    el.lessonName.textContent = "🥋 Dojo · " + r.op.name;
   }
 
   // ---- Sincronización en la nube (opcional, con clave personal) -------------
@@ -363,9 +387,22 @@
     sicilian:     ["#ff9600", "#d17c00"],
     queensgambit: ["#ce82ff", "#a968d6"],
     kingsindian:  ["#2ec4b6", "#25a094"],
+    zukertort:    ["#ffc800", "#d1a400"],
     carokann:     ["#00b8d9", "#0092ad"],
     slav:         ["#b58863", "#96684a"]
   };
+
+  // ---- Pequeñas comodidades (QoL) -----------------------------------------
+  // Vibración sutil al acertar/fallar (donde el dispositivo lo soporte).
+  function buzz(ms) { if (navigator.vibrate) { try { navigator.vibrate(ms); } catch (e) {} } }
+  // Pantalla despierta durante las lecciones (se libera al volver al inicio).
+  let wakeLock = null;
+  async function keepAwake(on) {
+    try {
+      if (on && "wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen");
+      else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+    } catch (e) {}
+  }
 
   function renderHome() {
     // Tarjeta de repaso espaciado (solo si hay repasos vencidos).
@@ -377,6 +414,15 @@
         ? "1 variación espera tu repaso de memoria"
         : `${due.length} variaciones esperan tu repaso de memoria`;
     }
+
+    // Dojo disponible con 2+ líneas memorizadas (de cualquier curso).
+    $("#btn-dojo").hidden = dojoPool().length < 2;
+
+    // Minimalismo: al usuario que ya empezó no se le repite el discurso.
+    const started = OPENINGS.some((op) => Object.keys(statusMap(op.id)).length > 0);
+    $("#home-coach-text").textContent = started
+      ? "¿Seguimos? Un repaso corto al día vale más que una hora al mes."
+      : "Elige una apertura y la aprendemos juntos: primero te explico cada jugada y luego la repetimos de memoria, que es como de verdad se queda. ¿Empezamos?";
 
     el.openingsList.innerHTML = "";
     OPENINGS.forEach((op, cardIdx) => {
@@ -465,6 +511,7 @@
   function showScreen(name) {
     el.screenHome.classList.toggle("is-active", name === "home");
     el.screenLesson.classList.toggle("is-active", name === "lesson");
+    el.screenExplore.classList.toggle("is-active", name === "explore");
     window.scrollTo(0, 0);
   }
 
@@ -473,6 +520,8 @@
     el.completeOverlay.classList.remove("is-open");
     clearTimeout(state.flowTimer);
     clearTimeout(flashTimer);
+    dojoActive = false;
+    keepAwake(false);
     renderHome();
     showScreen("home");
   }
@@ -483,6 +532,7 @@
   // Fases: "learn" (con ayuda) | "recall" (memoria del curso) |
   // "review" (repaso espaciado) | "game" (partida de repertorio).
   function startLesson(opening, index, phase) {
+    dojoActive = false; // el Dojo re-marca su bandera justo después de llamar
     index = Math.max(0, Math.min(index, opening.variations.length - 1));
     phase = (phase === "recall" || phase === "review" || phase === "game") ? phase : "learn";
     state.opening = opening;
@@ -502,6 +552,7 @@
     state.drill = null;
     clearTimeout(state.flowTimer);
     state.flipped = opening.color === "black";
+    keepAwake(true);
     el.btnMode.textContent = state.guided ? "Guiado" : "Memoria";
     let tag;
     if (phase === "learn") {
@@ -683,6 +734,13 @@
     const move = ms[state.step];
     updateHud();
 
+    // Visor de partidas/trampas: nada se mueve solo; se navega con ‹ ›.
+    if (state.phase === "replay") {
+      state.locked = false;
+      if (state.step > 0) setCoach(ms[state.step - 1].text + " — sigue con ›", "talk");
+      return;
+    }
+
     if (move.by === "engine") {
       // El rival responde casi al instante y sin comentario alguno: su jugada
       // se ve en el tablero (deslizamiento + casillas resaltadas) y ya.
@@ -810,6 +868,7 @@
     const why = (state.drill || (!state.guided && state.phase !== "game")) ? moveWhy(move) : "";
     const msg = why ? pick(PRAISE) + " " + why : pick(PRAISE);
     setCoach(msg, "happy");
+    buzz(15);
     animateMove(move);
     state.locked = true;
     // Ritmo ágil: fuera del refuerzo, la explicación PERMANECE en pantalla
@@ -906,6 +965,7 @@
   function wrongMove() {
     state.usedHelp = true; // un fallo rompe el "sin ayuda" de la fase de memoria
     state.selected = null;
+    buzz(60);
 
     // En fase de memoria o repaso, apunta el paso fallado: al acabar la línea
     // se practicará aparte (refuerzo dirigido de la jugada concreta).
@@ -1005,6 +1065,14 @@
     el.progressFill.style.width = "100%";
     state.locked = true;
 
+    // Fin del visor: se muestra el desenlace, sin overlay ni progreso.
+    if (state.phase === "replay") {
+      state.locked = false;
+      const r = state.replay || {};
+      setCoach("Fin de la partida" + (r.info ? " (" + r.info + ")" : "") + ". " + (r.note || ""), "win");
+      return;
+    }
+
     // Antes de cerrar una fase de memoria o repaso con fallos: refuerzo
     // dirigido de las jugadas concretas donde nos equivocamos.
     if ((state.phase === "recall" || state.phase === "review") && state.missed.length) {
@@ -1025,21 +1093,24 @@
     const op = state.opening, v = state.variation;
     const total = op.variations.length;
 
-    // Partida de repertorio: no toca el progreso del curso; se revela por fin
-    // qué línea eligió el rival y se ofrece otra partida.
+    // Partida de repertorio / Dojo: no tocan el progreso del curso; se revela
+    // por fin qué línea eligió el rival y se ofrece otra ronda.
     if (state.phase === "game") {
       const limpia = !state.usedHelp;
-      $("#complete-title").textContent = limpia ? "⚔️ ¡Partida impecable!" : "⚔️ Partida completada";
-      el.completeText.textContent = `El rival eligió «${v.name}» y ` +
+      const enDojo = dojoActive;
+      $("#complete-title").textContent =
+        (enDojo ? "🥋 " : "⚔️ ") + (limpia ? "¡Impecable!" : "¡Completada!");
+      el.completeText.textContent =
+        `El rival eligió ${enDojo ? `${op.name} — ` : ""}«${v.name}» y ` +
         (limpia
           ? "respondiste toda la línea de memoria, sin un solo fallo. 🏆"
           : "llegamos al final. Con un par de repasos saldrá sin ayudas.");
       const nextBtn = $("#complete-next");
-      nextBtn.textContent = "Otra partida ▶";
+      nextBtn.textContent = enDojo ? "Siguiente asalto ▶" : "Otra partida ▶";
       nextBtn.style.display = "block";
       const actions = document.querySelector(".overlay-actions");
       if (actions) actions.style.display = "flex";
-      state.onNext = () => startGame(op);
+      state.onNext = enDojo ? () => startDojo() : () => startGame(op);
       el.completeOverlay.classList.add("is-open");
       return;
     }
@@ -1168,12 +1239,350 @@
   function prevStep() { gotoStep(state.step - 1); }
 
   // =========================================================================
+  // VISOR DE PARTIDAS DE GM Y TRAMPAS (se navegan con ‹ ›)
+  // =========================================================================
+  function startReplay(item) {
+    dojoActive = false;
+    state.opening = state.opening || OPENINGS[0];
+    state.variation = { name: item.name, blurb: item.note || "", moves: item.moves };
+    state.replay = item;
+    state.phase = "replay";
+    state.guided = false;
+    state.usedHelp = false;
+    state.board = initialBoard();
+    state.step = 0;
+    state.selected = null;
+    state.selectable = null;
+    state.hint = null;
+    state.lastMove = null;
+    state.locked = false;
+    state.missed = [];
+    state.drill = null;
+    clearTimeout(state.flowTimer);
+    state.flipped = false;
+    keepAwake(true);
+    el.btnMode.textContent = "Visor";
+    el.lessonName.textContent = "🎬 " + item.name;
+    showScreen("lesson");
+    buildBoardGrid();
+    renderBoard();
+    updateHud();
+    setCoach((item.note ? item.note + " " : "") + "Recorre la partida con ‹ ›.", "talk");
+  }
+
+  function openReplayList(kind) {
+    const op = state.opening;
+    if (!op) return;
+    const items = (kind === "games" ? op.games : op.traps) || [];
+    $("#replay-title").textContent =
+      (kind === "games" ? "🏆 Partidas de GM · " : "😈 Trampas · ") + op.name;
+    $("#replay-sub").textContent = kind === "games"
+      ? "Partidas reales y verificadas de grandes maestros con tu apertura:"
+      : "Trampas típicas de esta apertura, jugada a jugada:";
+    const list = $("#replay-list");
+    list.innerHTML = "";
+    if (!items.length) {
+      const p = document.createElement("p");
+      p.className = "sheet-sub";
+      p.textContent = "Aún no hay contenido verificado para esta apertura. Antes que inventar jugadas, preferimos decirte: próximamente.";
+      list.appendChild(p);
+    }
+    items.forEach((item) => {
+      const row = document.createElement("button");
+      row.className = "variation-row";
+      row.innerHTML = `
+        <span class="variation-info">
+          <span class="variation-name">${item.name}</span>
+          ${item.info ? `<span class="variation-blurb">${item.info}</span>` : ""}
+          <span class="replay-row-note">${item.note}</span>
+        </span>
+        <span class="variation-meta">▶</span>`;
+      row.addEventListener("click", () => {
+        $("#replay-sheet").classList.remove("is-open");
+        startReplay(item);
+      });
+      list.appendChild(row);
+    });
+    $("#replay-sheet").classList.add("is-open");
+  }
+
+  // =========================================================================
+  // EXPLORADOR: tablero libre que reconoce la apertura
+  // =========================================================================
+  const fb = { board: {}, nodes: {}, layer: null, flipped: false, lastMove: null, selected: null, drag: null, hit: null };
+
+  function xColRow(sqr) {
+    const fi = FILES.indexOf(sqr[0]), ri = Number(sqr[1]) - 1;
+    return { col: fb.flipped ? 7 - fi : fi, row: fb.flipped ? ri : 7 - ri };
+  }
+  function xSetPos(node, sqr) {
+    const { col, row } = xColRow(sqr);
+    node.style.transform = `translate(${col * 100}%, ${row * 100}%)`;
+  }
+  function xSquareFromPoint(x, y) {
+    const rect = el.xboard.getBoundingClientRect();
+    const px = (x - rect.left) / rect.width, py = (y - rect.top) / rect.height;
+    if (px < 0 || px > 1 || py < 0 || py > 1) return null;
+    const col = Math.max(0, Math.min(7, Math.floor(px * 8)));
+    const row = Math.max(0, Math.min(7, Math.floor(py * 8)));
+    const fi = fb.flipped ? 7 - col : col;
+    const ri = fb.flipped ? row : 7 - row;
+    return FILES[fi] + (ri + 1);
+  }
+  function xBuildGrid() {
+    el.xboard.innerHTML = "";
+    for (let i = 0; i < 64; i++) {
+      const cell = document.createElement("div");
+      cell.className = "sq";
+      el.xboard.appendChild(cell);
+    }
+    fb.layer = document.createElement("div");
+    fb.layer.className = "pieces-layer";
+    el.xboard.appendChild(fb.layer);
+  }
+  function xPaint() {
+    const cells = el.xboard.children;
+    let i = 0;
+    for (let r = 8; r >= 1; r--) {
+      for (let f = 0; f < 8; f++) {
+        const sqr = fb.flipped ? FILES[7 - f] + (9 - r) : FILES[f] + r;
+        const cell = cells[i++];
+        const fi = FILES.indexOf(sqr[0]), ri = Number(sqr[1]);
+        let cls = "sq " + ((fi + ri) % 2 === 0 ? "dark" : "light");
+        if (fb.lastMove && (sqr === fb.lastMove.from || sqr === fb.lastMove.to)) cls += " last";
+        if (fb.selected === sqr) cls += " selected";
+        cell.className = cls;
+        cell.dataset.square = sqr;
+        cell.dataset.file = (fb.flipped ? sqr[1] === "8" : sqr[1] === "1") ? sqr[0] : "";
+        cell.dataset.rank = (fb.flipped ? sqr[0] === "h" : sqr[0] === "a") ? sqr[1] : "";
+      }
+    }
+  }
+  function xPlaceAll() {
+    fb.layer.innerHTML = "";
+    fb.nodes = {};
+    for (const sqr in fb.board) {
+      const p = fb.board[sqr];
+      const node = document.createElement("div");
+      node.className = "pc";
+      node.style.backgroundImage = `url("assets/pieces/${pieceFile(p)}")`;
+      xSetPos(node, sqr);
+      fb.layer.appendChild(node);
+      fb.nodes[p.id] = node;
+    }
+  }
+  // Serialización idéntica a la del índice POSITIONS del constructor.
+  function xKey() {
+    return Object.keys(fb.board).sort()
+      .map((k) => k + (fb.board[k].color === "white" ? "w" : "b") + fb.board[k].type)
+      .join("");
+  }
+  function xUpdateInfo() {
+    const hit = POSITIONS[xKey()];
+    const goto = $("#xp-goto");
+    if (hit) {
+      const op = OPENINGS.find((o) => o.id === hit.o);
+      const v = op && op.variations[hit.v];
+      if (op && v) {
+        fb.hit = hit;
+        goto.hidden = false;
+        $("#xp-info").textContent =
+          `${op.emoji} ¡${op.name}! Línea «${v.name}» (jugada ${Math.ceil(hit.p / 2)}). ${v.blurb}`;
+        return;
+      }
+    }
+    fb.hit = null;
+    goto.hidden = true;
+    $("#xp-info").textContent = fb.lastMove
+      ? "Esta posición se sale de nuestro repertorio. Sigue moviendo, o reinicia y prueba otra apertura."
+      : "Mueve piezas libremente (los dos bandos) y te digo qué apertura estás jugando. Para enrocar, mueve rey y torre por separado.";
+  }
+  function xReset() {
+    fb.board = initialBoard();
+    fb.lastMove = null;
+    fb.selected = null;
+    xPaint();
+    xPlaceAll();
+    xUpdateInfo();
+  }
+  function xMove(from, to) {
+    const piece = fb.board[from];
+    if (!piece || from === to) return;
+    const captured = fb.board[to];
+    if (captured) {
+      const n = fb.nodes[captured.id];
+      if (n) n.remove();
+      delete fb.nodes[captured.id];
+    }
+    delete fb.board[from];
+    fb.board[to] = piece;
+    fb.lastMove = { from, to };
+    fb.selected = null;
+    const node = fb.nodes[piece.id];
+    if (node) { node.classList.remove("dragging"); xSetPos(node, to); }
+    xPaint();
+    xUpdateInfo();
+  }
+  function xPointerDown(e) {
+    const sqr = xSquareFromPoint(e.clientX, e.clientY);
+    if (!sqr) return;
+    fb.drag = {
+      from: sqr,
+      node: fb.board[sqr] ? fb.nodes[fb.board[sqr].id] : null,
+      startX: e.clientX, startY: e.clientY, moved: false
+    };
+    if (fb.drag.node) { try { el.xboard.setPointerCapture(e.pointerId); } catch (err) {} }
+  }
+  function xPointerMove(e) {
+    const d = fb.drag;
+    if (!d || !d.node) return;
+    if (!d.moved) {
+      if (Math.hypot(e.clientX - d.startX, e.clientY - d.startY) < 6) return;
+      d.moved = true;
+      d.node.classList.add("dragging");
+      fb.selected = d.from;
+      xPaint();
+    }
+    const rect = el.xboard.getBoundingClientRect();
+    const size = rect.width / 8;
+    d.node.style.transform =
+      `translate(${e.clientX - rect.left - size / 2}px, ${e.clientY - rect.top - size / 2}px) scale(1.12)`;
+    e.preventDefault();
+  }
+  function xPointerUp(e) {
+    const d = fb.drag;
+    fb.drag = null;
+    if (!d) return;
+    try { el.xboard.releasePointerCapture(e.pointerId); } catch (err) {}
+    if (!d.moved) {
+      const sqr = d.from;
+      if (fb.selected && fb.selected !== sqr) { xMove(fb.selected, sqr); return; }
+      fb.selected = (fb.board[sqr] && fb.selected !== sqr) ? sqr : null;
+      xPaint();
+      return;
+    }
+    d.node.classList.remove("dragging");
+    const to = xSquareFromPoint(e.clientX, e.clientY);
+    if (to && to !== d.from) xMove(d.from, to);
+    else { xSetPos(d.node, d.from); fb.selected = null; xPaint(); }
+  }
+  function openExplore() {
+    dojoActive = false;
+    keepAwake(true);
+    xBuildGrid();
+    xReset();
+    showScreen("explore");
+  }
+
+  // =========================================================================
+  // RANKING POR WINRATE (datos reales de la base de Lichess)
+  // =========================================================================
+  let statsPeriod = "month";
+  function uciOf(mv) {
+    if (mv.castle) { const c = castleInfo(mv); return c.kingFrom + c.kingTo; }
+    return mv.from + mv.to;
+  }
+  function statsSince(period) {
+    const d = new Date();
+    if (period === "month") return d.toISOString().slice(0, 7);
+    if (period === "year") { d.setFullYear(d.getFullYear() - 1); return d.toISOString().slice(0, 7); }
+    return null; // «desde siempre»
+  }
+  function renderStats(data) {
+    const listEl = $("#stats-list");
+    listEl.innerHTML = "";
+    data.forEach((row) => {
+      const div = document.createElement("div");
+      div.className = "stats-row";
+      div.innerHTML = `
+        <span class="stats-row-name">${row.emoji} ${row.name}</span>
+        <span class="stats-row-bar"><span class="stats-row-fill" style="width:${Math.min(100, row.pct)}%"></span></span>
+        <span class="stats-row-pct">${row.pct}%</span>`;
+      listEl.appendChild(div);
+    });
+  }
+  async function loadStats(period) {
+    const listEl = $("#stats-list");
+    const cacheKey = "aperturas_stats_" + period;
+    let cached = null;
+    try { cached = JSON.parse(localStorage.getItem(cacheKey)); } catch (e) {}
+    if (cached && Date.now() - cached.t < 6 * 3600000) { renderStats(cached.data); return; }
+    listEl.innerHTML = '<p class="sheet-sub">Consultando la base de Lichess…</p>';
+    const since = statsSince(period);
+    try {
+      const rows = await Promise.all(OPENINGS.map(async (op) => {
+        const play = op.variations[0].moves.slice(0, 4).map(uciOf).join(",");
+        let url = "https://explorer.lichess.ovh/lichess?variant=standard" +
+          "&speeds=blitz,rapid,classical&ratings=1600,1800,2000,2200,2500&play=" + play;
+        if (since) url += "&since=" + since;
+        const r = await fetch(url);
+        if (!r.ok) throw new Error("http " + r.status);
+        const j = await r.json();
+        const total = j.white + j.draws + j.black;
+        const wins = op.color === "white" ? j.white : j.black;
+        return { emoji: op.emoji, name: op.name, pct: total ? Math.round((wins / total) * 1000) / 10 : 0 };
+      }));
+      const data = rows.sort((a, b) => b.pct - a.pct);
+      try { localStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), data })); } catch (e) {}
+      renderStats(data);
+    } catch (e) {
+      listEl.innerHTML = '<p class="sheet-sub">No se pudo conectar con la base de Lichess (hace falta internet). Prueba de nuevo en un rato.</p>';
+    }
+  }
+
+  // =========================================================================
   // EVENTOS DE UI
   // =========================================================================
   function bindEvents() {
     $("#btn-back").addEventListener("click", goHome);
     $("#btn-hint").addEventListener("click", showHint);
     el.reviewCard.addEventListener("click", startReviewSession);
+
+    // Herramientas del inicio
+    $("#btn-dojo").addEventListener("click", startDojo);
+    $("#btn-explore").addEventListener("click", openExplore);
+    $("#btn-stats").addEventListener("click", () => {
+      $("#stats-sheet").classList.add("is-open");
+      loadStats(statsPeriod);
+    });
+    document.querySelectorAll(".chip-period").forEach((chip) =>
+      chip.addEventListener("click", () => {
+        document.querySelectorAll(".chip-period").forEach((c) => c.classList.remove("is-on"));
+        chip.classList.add("is-on");
+        statsPeriod = chip.dataset.period;
+        loadStats(statsPeriod);
+      }));
+
+    // Explorador (tablero libre)
+    $("#xp-back").addEventListener("click", goHome);
+    $("#xp-reset").addEventListener("click", xReset);
+    $("#xp-flip").addEventListener("click", () => {
+      fb.flipped = !fb.flipped;
+      xPaint();
+      xPlaceAll();
+    });
+    $("#xp-goto").addEventListener("click", () => {
+      if (!fb.hit) return;
+      const op = OPENINGS.find((o) => o.id === fb.hit.o);
+      if (!op) return;
+      const v = op.variations[fb.hit.v];
+      const st = getStatus(op.id, v.id);
+      startLesson(op, fb.hit.v, (st === "learned" || st === "recalled1") ? "recall" : "learn");
+    });
+    el.xboard.addEventListener("pointerdown", xPointerDown);
+    el.xboard.addEventListener("pointermove", xPointerMove);
+    el.xboard.addEventListener("pointerup", xPointerUp);
+    el.xboard.addEventListener("pointercancel", xPointerUp);
+
+    // Partidas de GM y trampas (desde Ajustes de la lección)
+    $("#set-games").addEventListener("click", () => {
+      el.settingsSheet.classList.remove("is-open");
+      openReplayList("games");
+    });
+    $("#set-traps").addEventListener("click", () => {
+      el.settingsSheet.classList.remove("is-open");
+      openReplayList("traps");
+    });
 
     // Entrada del tablero: toque y arrastre con el dedo (Pointer Events).
     el.board.addEventListener("pointerdown", onPointerDown);
@@ -1182,6 +1591,7 @@
     el.board.addEventListener("pointercancel", onPointerUp);
 
     $("#btn-mode").addEventListener("click", () => {
+      if (state.phase === "replay") return; // el visor no tiene modos
       state.guided = !state.guided;
       if (state.guided && state.phase !== "learn") state.usedHelp = true; // activar ayuda fuera de aprender cuenta
       el.btnMode.textContent = state.guided ? "Guiado" : "Memoria";

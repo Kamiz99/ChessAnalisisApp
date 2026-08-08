@@ -43,13 +43,79 @@
         <span class="review-go">›</span>
       </button>
 
+      <!-- Herramientas: dojo, explorador y ranking -->
+      <div class="home-tools">
+        <button class="tool-card" id="btn-dojo" hidden>
+          <span class="tool-card-emoji">🥋</span>
+          <span class="tool-card-name">Dojo</span>
+          <span class="tool-card-sub">Todas tus líneas, al azar</span>
+        </button>
+        <button class="tool-card" id="btn-explore">
+          <span class="tool-card-emoji">🧭</span>
+          <span class="tool-card-name">¿Qué apertura es?</span>
+          <span class="tool-card-sub">Tablero libre</span>
+        </button>
+        <button class="tool-card" id="btn-stats">
+          <span class="tool-card-emoji">📊</span>
+          <span class="tool-card-name">Ranking</span>
+          <span class="tool-card-sub">Winrate real (Lichess)</span>
+        </button>
+      </div>
+
       <h2 class="section-title">Aperturas</h2>
       <div id="openings-list" class="openings-list"><!-- generado por JS --></div>
-
-      <footer class="home-footer">
-        <span>Hecho con ♟ para amantes del ajedrez</span>
-      </footer>
     </section>
+
+    <!-- ============ PANTALLA: EXPLORADOR (tablero libre) ============ -->
+    <section id="screen-explore" class="screen">
+      <header class="lesson-header">
+        <button class="icon-btn" id="xp-back" aria-label="Volver">←</button>
+        <div class="lesson-title"><span class="lesson-name">🧭 ¿Qué apertura es?</span></div>
+      </header>
+      <div class="coach-card xp-card">
+        <div class="coach-card-avatar">♞</div>
+        <p class="coach-card-text" id="xp-info">Mueve piezas libremente (los dos bandos) y te digo qué apertura estás jugando. Para enrocar, mueve rey y torre por separado.</p>
+      </div>
+      <button class="btn-primary xp-goto" id="xp-goto" hidden>📖 Ir al curso</button>
+      <div class="board-wrap">
+        <div id="xboard" class="board"><!-- generado por JS --></div>
+      </div>
+      <div class="lesson-toolbar">
+        <button class="tool-btn" id="xp-reset">↺ Reiniciar</button>
+        <button class="tool-btn" id="xp-flip">🔄 Girar</button>
+      </div>
+    </section>
+
+    <!-- ============ HOJA: PARTIDAS / TRAMPAS ============ -->
+    <div id="replay-sheet" class="sheet">
+      <div class="sheet-backdrop" data-close-sheet></div>
+      <div class="sheet-panel">
+        <div class="sheet-handle"></div>
+        <h3 id="replay-title">Partidas</h3>
+        <p class="sheet-sub" id="replay-sub"></p>
+        <div id="replay-list"><!-- generado por JS --></div>
+        <button class="sheet-row sheet-close" data-close-sheet>Cerrar</button>
+      </div>
+    </div>
+
+    <!-- ============ HOJA: RANKING (winrate real) ============ -->
+    <div id="stats-sheet" class="sheet">
+      <div class="sheet-backdrop" data-close-sheet></div>
+      <div class="sheet-panel">
+        <div class="sheet-handle"></div>
+        <h3>📊 Ranking por winrate</h3>
+        <div class="stats-periods">
+          <button class="chip-period is-on" data-period="month">Este mes</button>
+          <button class="chip-period" data-period="year">Este año</button>
+          <button class="chip-period" data-period="all">Desde siempre</button>
+        </div>
+        <div id="stats-list" class="stats-list"><p class="sheet-sub">Cargando…</p></div>
+        <p class="sync-note">Datos reales de la base de Lichess (aficionados y maestros, 1600-2500).
+        La fuente publica estadísticas por mes: por eso ofrecemos mes, año e histórico
+        (no existe serie diaria ni semanal). El % es de victorias jugando TU bando del curso.</p>
+        <button class="sheet-row sheet-close" data-close-sheet>Cerrar</button>
+      </div>
+    </div>
 
     <!-- ============ PANTALLA: LECCIÓN ============ -->
     <section id="screen-lesson" class="screen">
@@ -133,6 +199,8 @@
         <button class="sheet-row" id="set-flip">🔄 Girar tablero</button>
         <button class="sheet-row" id="set-restart">↺ Reiniciar lección</button>
         <button class="sheet-row" id="set-index">📚 Ver todas las variaciones</button>
+        <button class="sheet-row" id="set-games">🏆 Partidas de GM</button>
+        <button class="sheet-row" id="set-traps">😈 Trampas de esta apertura</button>
         <button class="sheet-row" id="set-sync">☁️ Sincronización</button>
         <button class="sheet-row" id="set-home">🏠 Volver al inicio</button>
         <button class="sheet-row sheet-close" data-close-sheet>Cerrar</button>

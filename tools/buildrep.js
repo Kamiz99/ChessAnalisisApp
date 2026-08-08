@@ -189,6 +189,25 @@ const IDEAS = {
     "Qb6": "La dama presiona b2 y d4 a la vez, aprovechando la diagonal que abrió el fianchetto rival: defender las dos cosas ya le exige contorsiones.",
     "e6": "Desafiamos la punta de su cadena (d5): si cambia, abrimos la columna e a nuestro favor; si aguanta, seguiremos picando ahí. Las cadenas se atacan por la cabeza."
   },
+  zukertort: {
+    "d4": "Abrimos con el peón de dama, protegido desde el primer momento. El Zukertort es un SISTEMA: las mismas jugadas buenas casi juegue lo que juegue el rival.",
+    "Nf3": "Caballo a f3: controla e5 (donde luego SALTARÁ) y no compromete nada. Segunda pieza del esquema, siempre igual.",
+    "e3": "e3 abre la diagonal del alfil de f1 y apuntala d4. La cadena pequeña pero de hierro sobre la que se apoya todo el sistema.",
+    "Bd3": "El alfil a la diagonal que mira al enroque rival (b1-h7): será la pieza estrella cuando llegue el ataque con Ne5 y f4.",
+    "b3": "La firma del Zukertort: preparamos el fianchetto Bb2. Ese alfil vigilará e5 desde lejos y hará imparable el salto del caballo.",
+    "Bb2": "El alfil a la gran diagonal: desde b2 sostiene el futuro caballo de e5 y apunta al rey rival a través de medio tablero.",
+    "O-O": "Rey a salvo. Con el esquema montado y el rey seguro, llega la parte divertida: Ne5, f4 y el ataque.",
+    "Nbd2": "El caballo de dama por detrás: apoya e4 si hace falta y, sobre todo, puede RELEVAR al de f3 en e5 si lo cambian. El puesto siempre queda ocupado.",
+    "Ne5": "¡El salto del sistema! El caballo se planta en e5 sostenido por d4 y el alfil de b2: si lo cambian, recapturamos y el puesto lo hereda el otro caballo. Ahora vienen f4 y el ataque.",
+    "exd4": "Recapturamos con el peón e: la columna e se abre para nuestra torre y d4 queda firme. El cambio le dio aire… a nuestras piezas.",
+    "Qxd3": "Recapturamos con la dama, que queda en la diagonal atacante sin perder tiempo: el rival nos colocó la dama gratis.",
+    "Be2": "Contra el fianchetto el alfil rinde mejor en e2: en d3 no muerde nada. El sistema se adapta sin cambiar de plan.",
+    "c4": "Con su …e5 en el aire, golpeamos d5 por el flanco: obligamos a definir el centro justo cuando le pilla a medias.",
+    "dxe5": "Capturamos en e5: castigamos su ruptura abriendo la posición con nuestras piezas mejor puestas.",
+    "Nxe5": "Cambiamos en e5 sin miedo: cada cambio nos deja mejor estructura y la torre rival acabará expuesta en e5.",
+    "Nd2": "El caballo reta a la torre plantada en e5: tendrá que retirarse con tiempo perdido, y el caballo irá luego a f3 o c4.",
+    "f4": "¡Fijamos el caballo de e5 con el peón! Espacio, ataque y el plan de siempre: torre por f3 o g4 según responda. El Zukertort en pleno vuelo."
+  },
   carokann: {
     "c6": "La Caro-Kann: preparamos …d5 con apoyo. Su gran secreto: nuestro alfil de c8 saldrá ANTES de cerrar con …e6 — la muralla, pero sin pieza mala.",
     "d5": "Golpeamos e4 con todo preparado: c6 sostiene d5. Que decida el rival: avanzar, cambiar o defender; tenemos respuesta cómoda para cada una.",
@@ -398,6 +417,31 @@ const RIVAL = {
     "g3": "El fianchetto: su alfil irá a g2 a sostener el centro y su rey.",
     "Bg2": "Su alfil llega a g2, defendiendo rey y centro a la vez."
   },
+  zukertort: {
+    "d5": "Ocupan su parte del centro.",
+    "Nf6": "Desarrollan controlando e4.",
+    "e6": "Abren la salida de su alfil de rey.",
+    "c5": "Golpean d4 desde el flanco.",
+    "Nc6": "Desarrollan presionando d4.",
+    "Bd6": "Su alfil apunta a nuestro flanco de rey.",
+    "O-O": "Ponen su rey a salvo.",
+    "Qe7": "Conectan piezas y preparan …e5.",
+    "cxd4": "Cambian en d4 aliviando la tensión.",
+    "Be7": "Desarrollo modesto del alfil.",
+    "b6": "Preparan su propio fianchetto con …Bb7.",
+    "Bb7": "Su alfil presiona por la diagonal larga.",
+    "Bf5": "Sacan el alfil activo antes de …e6.",
+    "Bxd3": "Cambian los alfiles de casillas blancas.",
+    "Nbd7": "Desarrollan apoyando …e5 o …c5.",
+    "e5": "Rompen en el centro: era su plan.",
+    "Re8": "Su torre apoya la ruptura …e5.",
+    "g6": "Preparan el fianchetto de su alfil de rey.",
+    "Bg7": "Su alfil llega a g7, a la diagonal larga.",
+    "d6": "Sostienen el centro y preparan …e5.",
+    "Nxe5": "Recapturan en e5.",
+    "Rxe5": "Recapturan con la torre… que queda expuesta en el centro.",
+    "c6": "Refuerzan d5 con solidez."
+  },
   carokann: {
     "e4": "Toman el centro; les responderemos con la muralla c6-d5.",
     "d4": "Montan el centro doble: perfecto, ahora lo golpeamos con …d5.",
@@ -460,6 +504,100 @@ const RIVAL = {
   }
 };
 
+// ---- Partidas de GM (reales y verificadas) --------------------------------
+// SOLO clásicos cuyas jugadas están fuera de toda duda. Si una apertura no
+// tiene partida verificada, la app muestra «próximamente» — nunca inventamos.
+const GAMES = {
+  italian: [
+    { white: "Gioachino Greco", black: "NN", event: "Roma", year: 1620, result: "1-0",
+      note: "El castigo clásico a la codicia: las negras comieron en c3 y a1 y el ataque blanco fue imparable tras 12.Bg5.",
+      san: "1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. c3 Nf6 5. d4 exd4 6. cxd4 Bb4+ 7. Nc3 Nxe4 8. O-O Nxc3 9. bxc3 Bxc3 10. Qb3 Bxa1 11. Bxf7+ Kf8 12. Bg5" }
+  ],
+  ruylopez: [
+    { white: "Anatoly Karpov", black: "Wolfgang Unzicker", event: "Olimpiada de Niza", year: 1974, result: "1-0",
+      note: "La Española Cerrada de manual: Karpov maniobró sin prisa (a4, Nbd2-f1-g3) y asfixió pieza a pieza. Modelo eterno del plan blanco.",
+      san: "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Na5 10. Bc2 c5 11. d4 Qc7" }
+  ],
+  queensgambit: [
+    { white: "Bobby Fischer", black: "Boris Spassky", event: "Mundial de Reikiavik (6ª partida)", year: 1972, result: "1-0",
+      note: "Considerada una de las partidas más perfectas de Fischer: presión creciente sobre d5 hasta la victoria. Hasta Spassky aplaudió.",
+      san: "1. c4 e6 2. Nf3 d5 3. d4 Nf6 4. Nc3 Be7 5. Bg5 O-O 6. e3 h6 7. Bh4 b6 8. cxd5 Nxd5 9. Bxe7 Qxe7 10. Nxd5 exd5 11. Rc1 Be6" }
+  ],
+  carokann: [
+    { white: "Deep Blue", black: "Garry Kasparov", event: "Nueva York (6ª partida)", year: 1997, result: "1-0",
+      note: "La máquina sacrificó el caballo en e6 y Kasparov se rindió en la jugada 19. Moraleja: en la variante …Nd7 (que NO jugamos), el orden importa.",
+      san: "1. e4 c6 2. d4 d5 3. Nc3 dxe4 4. Nxe4 Nd7 5. Ng5 Ngf6 6. Bd3 e6 7. N1f3 h6 8. Nxe6" }
+  ],
+  sicilian: [
+    { white: "Anatoly Karpov", black: "Garry Kasparov", event: "Mundial de Moscú (16ª partida)", year: 1985, result: "0-1",
+      note: "El gambito de Kasparov: plantó un caballo eterno en d3 («el pulpo») y firmó una inmortal. La Siciliana en estado puro: actividad sobre material.",
+      san: "1. e4 c5 2. Nf3 e6 3. d4 cxd4 4. Nxd4 Nc6 5. Nb5 d6 6. c4 Nf6 7. N1c3 a6 8. Na3 d5" }
+  ],
+  kingsindian: [
+    { white: "Milko Bobotsov", black: "Mihail Tal", event: "Varna", year: 1958, result: "0-1",
+      note: "Tal entregó LA DAMA por caballo y alfil en plena Sämisch… y su iniciativa arrasó. El espíritu de la India de Rey en una miniatura.",
+      san: "1. d4 Nf6 2. c4 g6 3. Nc3 Bg7 4. e4 d6 5. f3 O-O 6. Be3 e5 7. d5 Nh5 8. Qd2 Qh4+ 9. g3 Nxg3 10. Qf2 Nxf1 11. Qxh4 Nxe3" }
+  ]
+};
+
+// ---- Trampas de apertura (líneas cortas y verificadas) --------------------
+const TRAPS = {
+  london: [
+    { name: "La dama glotona (…Qxb2)",
+      note: "Si la dama negra toma b2, Nb5 la deja sin casillas: amenaza Nc7+ y Rb1. Ganamos material o la dama entera.",
+      san: "1. d4 d5 2. Bf4 c5 3. e3 Qb6 4. Nc3 Qxb2 5. Nb5" }
+  ],
+  italian: [
+    { name: "El Mate de Legal",
+      note: "La clavada de …Bg4 era mentira: sacrificamos la dama y damos mate con tres piezas menores. La trampa más bella del ajedrez.",
+      san: "1. e4 e5 2. Nf3 Nc6 3. Bc4 d6 4. Nc3 Bg4 5. h3 Bh5 6. Nxe5 Bxd1 7. Bxf7+ Ke7 8. Nd5#" }
+  ],
+  ruylopez: [
+    { name: "El Arca de Noé (la sufres tú: apréndela)",
+      note: "Si tomamos e5 con avaricia tras …b5, la cadena a6-b5-c4 caza a nuestro alfil de b3. Por eso nuestro repertorio no se lanza a por e5.",
+      san: "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 d6 5. d4 b5 6. Bb3 exd4 7. Nxd4 Nxd4 8. Qxd4 c5 9. Qd5 Be6 10. Qc6+ Bd7 11. Qd5 c4" }
+  ],
+  sicilian: [
+    { name: "El salto a d6 (…e5 apresurado)",
+      note: "Si las negras juegan …e5 y …a6 sin preparación, Nd6+ obliga a entregar el alfil: las casillas negras quedan nuestras para siempre.",
+      san: "1. e4 c5 2. Nf3 Nc6 3. d4 cxd4 4. Nxd4 e5 5. Nb5 a6 6. Nd6+ Bxd6 7. Qxd6" }
+  ],
+  queensgambit: [
+    { name: "La Trampa del Elefante (la sufres tú)",
+      note: "Si el caballo toma d5 fiándose de la clavada, …Bb4+ recupera la pieza con ventaja negra: la clavada de Bg5 no defiende d5. Por eso jugamos e3 a tiempo.",
+      san: "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Nbd7 5. cxd5 exd5 6. Nxd5 Nxd5 7. Bxd8 Bb4+ 8. Qd2 Bxd2+ 9. Kxd2 Kxd8" }
+  ],
+  carokann: [
+    { name: "El mate del caballo fantasma",
+      note: "En la variante …Nd7 (que nosotros NO jugamos), 6.Nd6 es MATE: el peón de e7 está clavado por la dama. Conócela para tenderla con blancas.",
+      san: "1. e4 c6 2. d4 d5 3. Nc3 dxe4 4. Nxe4 Nd7 5. Qe2 Ngf6 6. Nd6#" }
+  ],
+  kingsindian: [
+    { name: "El salvavidas …Nxe4",
+      note: "Tras el cambio de damas, si las blancas se lanzan a por e5, …Nxe4 lo recupera todo con mejor final. Truco táctico de manual indio.",
+      san: "1. d4 Nf6 2. c4 g6 3. Nc3 Bg7 4. e4 d6 5. Nf3 O-O 6. Be2 e5 7. dxe5 dxe5 8. Qxd8 Rxd8 9. Nxe5 Nxe4 10. Nxe4 Bxe5" }
+  ]
+};
+
+// Convierte partidas/trampas SAN a jugadas navegables (visor con ‹ ›).
+function fmtSan(i, san) {
+  return Math.floor(i / 2 + 1) + (i % 2 ? "… " : ". ") + san;
+}
+function buildReplaySet(list) {
+  return (list || []).map((g) => {
+    const toks = tokenize(g.san);
+    let moves;
+    try { moves = sanLineToMoves(toks); }
+    catch (e) { console.error(`ERROR partida/trampa "${g.name || g.white}": ${e.message}`); problems++; return null; }
+    return {
+      name: g.name || `${g.white} – ${g.black}`,
+      info: g.event ? `${g.event}, ${g.year} · ${g.result}` : "",
+      note: g.note || "",
+      moves: moves.map((mv, i) => ({ by: "engine", ...mv, text: fmtSan(i, toks[i]) }))
+    };
+  }).filter(Boolean);
+}
+
 const uncovered = new Set(); // "opId:san (user|rival)" sin porqué, para avisar
 
 function buildLine(moves, sans, userIsWhite, name, ideas, rival, opId) {
@@ -516,6 +654,7 @@ function simKey(moves, userIsWhite, plies) {
 
 // ---- Construcción ---------------------------------------------------------
 const OUT = [];
+const POSITIONS = {}; // posición serializada -> {o, v, p} para el explorador
 let problems = 0;
 
 for (const op of REP) {
@@ -545,6 +684,14 @@ for (const op of REP) {
       }
     });
 
+    // Índice de posiciones para el explorador («¿qué apertura es esta?»):
+    // cada posición de la línea apunta a su curso/variación (la 1ª gana).
+    const vIdx = variations.length;
+    for (let p = 1; p <= moves.length; p++) {
+      const key = simKey(moves, userIsWhite, p);
+      if (!POSITIONS[key]) POSITIONS[key] = { o: op.id, v: vIdx, p };
+    }
+
     variations.push({
       id: slug(line.name),
       name: line.name,
@@ -556,8 +703,10 @@ for (const op of REP) {
   OUT.push({
     id: op.id, name: op.name, emoji: op.emoji, color: op.color,
     level: op.level, tag: op.tag || "", blurb: op.blurb, variations,
+    games: buildReplaySet(GAMES[op.id]),
+    traps: buildReplaySet(TRAPS[op.id]),
   });
-  console.error(`${op.id}: ${variations.length} líneas`);
+  console.error(`${op.id}: ${variations.length} líneas, ${(GAMES[op.id]||[]).length} partidas, ${(TRAPS[op.id]||[]).length} trampas`);
 }
 
 if (uncovered.size) {
@@ -578,4 +727,6 @@ const header = `/*
  * solo en la respuesta del rival (una réplica por respuesta, sin contradicciones).
  * No editar a mano: regenerar con  node tools/buildrep.js > openings.js
  */\n\n`;
-process.stdout.write(header + "const OPENINGS = " + JSON.stringify(OUT, null, 0) + ";\n\nwindow.OPENINGS = OPENINGS;\n");
+process.stdout.write(header + "const OPENINGS = " + JSON.stringify(OUT, null, 0) +
+  ";\n\nconst POSITIONS = " + JSON.stringify(POSITIONS, null, 0) +
+  ";\n\nwindow.OPENINGS = OPENINGS;\nwindow.POSITIONS = POSITIONS;\n");
