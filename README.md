@@ -9,6 +9,10 @@ progreso, botón de pista y un asistente que te acompaña paso a paso.
 
 ## ✨ Características
 
+- **Niveles Fácil → Intermedio → Avanzado.** Cada curso se divide en tres
+  niveles (Londres: las 5 líneas más comunes en Fácil, luego 3 y 3). Los
+  niveles superiores están BLOQUEADOS y ocultos en toda la app hasta
+  memorizar por completo el anterior: la app celebra cada desbloqueo.
 - **Cursos por apertura.** Eliges una apertura y la app te guía en orden por
   **todas sus variaciones**, con el mínimo de decisiones: un solo botón
   «Siguiente». El progreso se guarda en tu dispositivo y cada curso muestra

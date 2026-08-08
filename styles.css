@@ -505,6 +505,12 @@ html, body {
 }
 .variation-row.is-done { border-color: #b8ecb0; box-shadow: 0 3px 0 #b8ecb0; }
 .variation-row.is-done .variation-check { background: var(--green); color: #fff; border-color: var(--green-sh); }
+.variation-row.is-locked { opacity: .55; cursor: default; }
+.variation-row.is-locked:active { transform: none; box-shadow: 0 3px 0 var(--line); }
+.tier-head {
+  font-size: 12px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase;
+  color: var(--text-mid); margin: 12px 2px 8px;
+}
 
 /* Progreso del curso en la tarjeta de apertura */
 .course-bar { display: block; height: 12px; background: var(--line); border-radius: 999px; overflow: hidden; margin: 8px 0 6px; }
